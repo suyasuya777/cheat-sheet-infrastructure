@@ -1,0 +1,676 @@
+cheat-sheet-terraform.txt Ver 1.00
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■  基礎知識
+■■■
+■■■■■■■■■■■■■■■■■■
+
+■ｺﾏﾝﾄﾞ
+
+------------------------------------
+terraform init
+  Terraform の初期化
+
+....................................
+terraform init -reconfigure
+　backend.tf の設定を再読込（ｷｬｯｼｭｸﾘｱ）
+
+....................................
+terraform init -migrate-state
+　ﾊﾞｯｸｴﾝﾄﾞを変更
+
+....................................
+terraform fmt
+terraform fmt -recursive
+  ｺｰﾄﾞの整形
+
+....................................
+terraform plan
+  ﾘｿｰｽの変更確認（追加・変更・削除）
+
+....................................
+terraform plan -target=module.<ﾓｼﾞｭｰﾙ名>
+  ﾓｼﾞｭｰﾙ単位にﾘｿｰｽの変更確認（追加・変更・削除）
+
+....................................
+terraform apply
+  ﾘｿｰｽを適用
+
+....................................
+terraform destroy
+  ﾘｿｰｽ削除
+
+....................................
+terraform show
+  ﾘｿｰｽの状態を確認
+
+....................................
+terraform output
+  outputの内容を確認
+
+....................................
+terraform state list
+  tfstate管理のﾘｿｰｽを確認
+
+....................................
+terraform state rm ${ﾘｿｰｽ名}
+  tfstate管理のﾘｿｰｽを削除
+
+....................................
+terraform import ${tfstateの管理名} ${ﾘｿｰｽ名}
+  tfstate管理のﾘｿｰｽを追加
+
+------------------------------------
+nslookup <ﾄﾞﾒｲﾝ名>
+　ﾄﾞﾒｲﾝ名のDNS情報を確認
+
+------------------------------------
+nslookup -type=ns <ﾄﾞﾒｲﾝ名>
+　ﾈｰﾑｻｰﾊﾞｰを確認
+
+------------------------------------
+ipconfig /flushdns
+　ﾛｰｶﾙのDNSｷｬｯｼｭｸﾘｱ
+
+------------------------------------
+
+
+■ﾌｧｲﾙ名
+
+  -----------------------------------------------------
+     役割                       ﾌｧｲﾙ名
+  -----------------------------------------------------
+  ﾘｿｰｽの定義       main.tf
+  変数の定義       variables.tf / vars.tf / inputs.tf
+  出力の定義       output.tf / outputs.tf / result.tf
+  変数のﾃﾞﾌｫﾙﾄ値   terraform.tfvars
+  状態管理         terraform.tfstate
+  -----------------------------------------------------
+
+
+■ﾌﾞﾛｯｸ
+
+  ------------------------------------------------------------------
+   ﾌﾞﾛｯｸ名                       ﾌｧｲﾙ名
+  ------------------------------------------------------------------
+  provider         使用するﾌﾟﾛﾊﾞｲﾀﾞｰ（aws / google / azurerm）
+  ..................................................................
+  resource         作成するﾘｿｰｽ
+  ..................................................................
+  locals           ﾛｰｶﾙ変数を定義 
+
+                     定義： locals {・・・}
+                     参照： local.<変数名>、 "${local.<変数名>}"
+  ..................................................................
+  module           ﾓｼﾞｭｰﾙ（親ﾓｼﾞｭｰﾙ ⇒ 子ﾓｼﾞｭｰﾙ）を定義
+
+                     定義：【親ﾓｼﾞｭｰﾙ】module "<module_name>" {
+                                         source="相対ﾊﾟｽ" 
+                                         引き渡す変数の値
+                                       }
+  ..................................................................
+  variable         ﾓｼﾞｭｰﾙの入力変数を定義（親ﾓｼﾞｭｰﾙ ⇒ 子ﾓｼﾞｭｰﾙ）
+
+                     定義： variable "<変数名>" {・・・}
+                     参照： var.変数名  、 "${var.<変数名>}"
+  ..................................................................
+  output           ﾓｼﾞｭｰﾙの出力変数を定義（子ﾓｼﾞｭｰﾙ ⇒ 親ﾓｼﾞｭｰﾙ）
+
+                     定義： 【子ﾓｼﾞｭｰﾙ】output "<output_name>" {・・・}
+                     参照： 【親ﾓｼﾞｭｰﾙ】module.<module_name>.<output_name>
+                                        "${module.<module_name>.<output_name>}"
+  ..................................................................
+  import           Terraform管理外のﾘｿｰｽ情報をTerraformnにｲﾝﾎﾟｰﾄする
+  ..................................................................
+  data             Terraform管理外のﾘｿｰｽ情報を参照する
+  ..................................................................
+  terraform        ﾊﾞｰｼﾞｮﾝ、ﾘﾓｰﾄﾊﾞｯｸｴﾝﾄﾞ（terraform.tfstate）
+  ------------------------------------------------------------------
+
+
+■変数のｽｺｰﾌﾟ
+
+  ------------------------------------------------------------------
+     ｽｺｰﾌﾟ                  定義                     適用範囲
+  ------------------------------------------------------------------
+  ｸﾞﾛｰﾊﾞﾙｽｺｰﾌﾟ     terraformﾌﾞﾛｯｸ内                ﾌﾟﾛｼﾞｪｸﾄ全体
+  ﾙｰﾄﾓｼﾞｭｰﾙｽｺｰﾌﾟ   locals、variableで定義          同一ﾃﾞｨﾚｸﾄﾘ内
+  ﾓｼﾞｭｰﾙｽｺｰﾌﾟ      moduleﾌﾞﾛｯｸ内で渡された変数     各ﾓｼﾞｭｰﾙ内
+  ------------------------------------------------------------------
+
+
+■ﾘｿｰｽ名
+  ------------------------------------------------------------------
+              ﾘｿｰｽ名                                   説明
+  ------------------------------------------------------------------
+  aws_vpc                                     VPC
+  aws_subnet                                  ｻﾌﾞﾈｯﾄ
+  aws_route_table                             ﾙｰﾄﾃｰﾌﾞﾙ
+  aws_route                                   ﾙｰﾄﾃｰﾌﾞﾙのﾙｰﾄ定義
+  aws_route_table_association                 ﾙｰﾄﾃｰﾌﾞﾙとｻﾌﾞﾈｯﾄの関連付け
+  aws_internet_gateway                        ｲﾝﾀｰﾈｯﾄGW
+  aws_eip                                     Elastic IP
+  aws_nat_gateway                             NATGW
+  ..................................................................
+  aws_route53_record                          Route53のﾚｺｰﾄﾞ定義
+  aws_route53_health_check                    ﾍﾙｽﾁｪｯｸ
+  ..................................................................
+  aws_cloudfront_cache_policy                 CloudFrontのｷｬｯｼｭﾎﾟﾘｼｰ
+  aws_cloudfront_distribution                 CloudFront
+  ..................................................................
+  aws_lb                                      ALB
+  aws_lb_target_group                         ALBのﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟ
+  aws_lb_target_group_attachment              ALBのﾀｰｹﾞｯﾄｸﾞﾙｰﾌの登録
+  aws_lb_listener                             ALBのﾘｽﾅｰ
+  ..................................................................
+  aws_launch_template                         Auto Scaling用のEC2ﾃﾝﾌﾟﾚｰﾄ
+  aws_autoscaling_group                       Auto Scalingｸﾞﾙｰﾌﾟ
+  ..................................................................
+  aws_instance                                EC2ｲﾝｽﾀﾝｽ
+  ..................................................................
+  aws_ecs_cluster                             ECSｸﾗｽﾀ
+  aws_ecs_task_definition                     ECSﾀｽｸ定義
+  aws_ecs_service                             ECSｻｰﾋﾞｽ
+    network_configuration                       ﾈｯﾄﾜｰｸ、ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
+    dynamic "load_balancer"                     ﾛｰﾄﾞﾊﾞﾗﾝｻ
+    dynamic "service_registries"                Cloud Map
+  aws_service_discovery_private_dns_namespace ﾌﾟﾗｲﾍﾞｰﾄDNS名前空間
+  aws_service_discovery_service               ｻｰﾋﾞｽ名（DNSｴﾝﾄﾘ名）
+  ..................................................................
+  aws_s3_bucket                               S3ﾊﾞｹｯﾄ
+  aws_s3_bucket_website_configuration         S3の静的ｳｪﾌﾞｻｲﾄﾎｽﾃｨﾝｸﾞ
+  aws_s3_bucket_public_access_block           ﾊﾟﾌﾞﾘｯｸｱｸｾｽﾌﾞﾛｯｸ
+  aws_s3_bucket_policy                        S3ﾊﾞｹｯﾄﾎﾟﾘｼｰ
+  ..................................................................
+  aws_db_subnet_group                         RDS ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟ
+  aws_db_instance                             RDS
+  ..................................................................
+  aws_elasticache_subnet_group                ｻﾌﾞﾈｯﾄ（ﾌﾟﾗｲﾍﾞｰﾄｻﾌﾞﾈｯﾄ）
+  aws_elasticache_parameter_group             ﾊﾟﾗﾒｰﾀ
+  aws_elasticache_replication_group           ｸﾗｽﾀ本体（ﾏｽﾀｰ、ﾚﾌﾟﾘｶ）
+  ..................................................................
+  aws_iam_instance_profile                    IAMｲﾝｽﾀﾝｽﾌﾟﾛﾌｧｲﾙ
+  aws_iam_role                                IAMﾛｰﾙ
+  aws_iam_policy                              IAMﾎﾟﾘｼｰ
+  aws_iam_role_policy_attachment              IAMﾛｰﾙに、IAMﾎﾟﾘｼｰをｱﾀｯﾁ
+  ..................................................................
+  aws_security_group                          ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
+  aws_security_group_rule                     ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟのﾙｰﾙを追加
+  ..................................................................
+  aws_acm_certificate                         ACM
+  aws_acm_certificate_validation              ACMのDNS検証を待機
+  ..................................................................
+  aws_lambda_function                         Lambda 関数
+  ..................................................................
+  aws_dynamodb_table                          DynamoDBﾃｰﾌﾞﾙ
+  ..................................................................
+  aws_sqs_queue                               SQS
+  aws_sns_topic                               SNS
+  ..................................................................
+  aws_cloudwatch_log_group                    CloudWatchﾛｸﾞｸﾞﾙｰﾌﾟ
+  aws_cloudwatch_metric_alarm                 CloudWatchﾒﾄﾘｸｽｱﾗｰﾑ
+  ------------------------------------------------------------------
+  ※）ｸﾗｲｱﾝﾄ > ALB > Target-Group > Auto Scaling Group
+
+------------------------------------
+【HCLのﾃﾞｰﾀ型】
+
+
+string、numbe、bool、any、null
+
+【例】
+
+variable "vpc_id" {
+  type = string
+}
+
+....................................
+object（オブジェクト）：構造化された複数の値
+
+【書式】
+
+  { 要素1 = 値1, 要素2 = 値2, 要素3 = 値3 }
+
+
+【例】
+
+variable "example" {
+  type = object({
+    name     = string
+    cidr     = string
+    public   = bool
+  })
+  default = {
+    name   = "subnet-a"
+    cidr   = "10.0.1.0/24"
+    public = true
+  }
+}
+
+output "app_config_object" {
+  value = local.app_config
+  type = object({
+    name     = string
+    cidr     = string
+    public   = bool
+  })
+}
+
+....................................
+list（リスト）：順序ありの値の集まり（重複可能）
+
+【書式】
+
+  [ 値1, 値2, 値3 ]
+
+
+【例】
+
+variable "example" {
+  type    = list(string)
+  default = ["ap-northeast-1a", "ap-northeast-1c"]
+}
+
+output "features_list" {
+  value = local.features_list
+}
+
+output "features_list" {
+  value = local.features_list
+  type  = list(string)
+}
+
+....................................
+set（集合）：順序なしの値の集まり（重複不可）
+
+【書式】
+
+  [ 値1, 値2, 値3 ]
+
+
+【例】
+
+variable "example" {
+  type    = set(string)
+  default = ["monitoring", "logging", "tracing"]
+}
+
+output "features_set" {
+  value = local.features_list
+  type  = set(string)
+}
+
+....................................
+map（辞書）：key-value のﾍﾟｱ
+
+【書式】
+
+  { ｷｰ1 = 値1, ｷｰ2 = 値2 }
+
+
+【例】
+
+variable "instance_types" {
+  type = map(string)
+  default = {
+    dev  = "t2.micro"
+    prod = "t3.large"
+  }
+}
+
+output "app_tags_map" {
+  value = local.app_tags
+  type  = map(string)
+}
+
+------------------------------------
+【HCLのfor】
+
+【書式】
+
+  [for item in var.list : 値]
+
+  [for item in var.list : 値 if 条件]
+
+  {for key, value in var.map : 新key => 新value}
+
+【例】
+
+locals {
+  subnet_names = [for subnet in var.subnets : subnet.name]
+}
+
+locals {
+  public_subnets = [for subnet in var.subnets : subnet if subnet.public == true]
+}
+
+locals {
+  subnet_map = { for subnet in var.subnets : subnet.name => subnet.cidr }
+}
+
+------------------------------------
+【HCLのfor_each（set / map を扱う）】
+
+
+【例】
+
+resource "aws_instance" "example" {
+  for_each = toset(var.names)                 # listをsetに変換
+
+  ami           = "ami-0c3fd0f5d33134a76"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = each.key                           # 要素は、each.key
+  }
+}
+
+resource "aws_subnet" "example" {
+  for_each = {
+    for subnet in var.subnets :               # list(object)をmapに変換
+    subnet.name => subnet
+  }
+
+  vpc_id                  = var.vpc_id
+  cidr_block              = each.value.cidr
+  availability_zone       = each.value.az
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = each.value.name
+  }
+}
+
+------------------------------------
+【HCLの関数】
+
+values(map)
+
+lookup(map, 検索key, default)
+
+concat(list1, list2, ...)
+
+length(value)                   # value: list, map, set, string
+
+toset(list)                     # 重複は自動削除
+
+tolist(set)
+
+join(separator, list)
+
+split(separator, string)
+
+substr(string, offset, length)  # ofset:開始位置 length:抽出文字数
+
+file(path)                      # user_data = file(path)
+
+try(式1, 式2, ..., 式N)         # 最初に成功した値を返す
+
+base64encode(string)            # user_data = base64encode(file(path)))
+base64decode(string) 
+
+jsonencode(value)               # HCL  -> JSON（ﾎﾟﾘｼｰ）
+jsondecode(json_string)         # JSON -> HCL
+
+------------------------------------
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■  ファイル構成
+■■■
+■■■■■■■■■■■■■■■■■■
+
+terraform/
+ |
+ +- backend-setup/               # 環境別の状態管理用S3ﾊﾞｹｯﾄ作成ﾓｼﾞｭｰﾙ
+      |
+      +- prod/
+      |   |
+      |   +- main.tf
+      |   +- variables.tf
+      |   +- terraform.tfvars
+      |
+      +- dev/
+          |
+          +- main.tf
+          +- variables.tf
+          +- terraform.tfvars
+
+github.com/your-org/terraform-modules/
+  |
+  +- README.md
+  |
+  +- environments/             # 環境別のﾙｰﾄﾓｼﾞｭｰﾙ
+  |  |
+  |  +- prod/
+  |  |   |
+  |  |   +- main.tf
+  |  |   +- variables.tf
+  |  |   +- backend.tf
+  |  |   +- providers.tf
+  |  |   +- terraform.tfvars
+  |  |   |
+  |  |   +templates/
+  |  |     |
+  |  |     +- user_data_local_mysql.sh.tpl
+  |  |     +- user_data_rds.sh.tpl
+  |  |
+  |  +- dev/
+  |      |
+  |      +- main.tf
+  |      +- variables.tf
+  |      +- backend.tf
+  |      +- providers.tf
+  |      +- terraform.tfvars 
+  |      +templates/
+  |        |
+  |        +- user_data_local_mysql.sh.tpl
+  |        +- user_data_rds.sh.tpl
+  |
+  +- modules/
+  |   |
+  |   +- vpc/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- nacl/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- sg/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- ec2/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- asg/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- alb/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- rds/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- elasticache/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- route53/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- acm/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- iam/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- ecs/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- eks/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- lambda/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- apigateway/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- dynamodb/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- s3/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- cloudfront/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- waf/
+  |   |   |
+  |   |   +- main.tf
+  |   |   +- variables.tf
+  |   |   +- outputs.tf
+  |   |   +- locals.tf
+  |   |   +- README.md
+  |   |
+  |   +- cloudwatch/
+  |       |
+  |       +- main.tf
+  |       +- variables.tf
+  |       +- outputs.tf
+  |       +- locals.tf
+  |       +- README.md
+  |
+  +- test/                     # .gitignoreの設定
+      |
+      +- vpc/
+      |   |
+      |   +- main.tf
+      |   +- variables.tf
+      |   +- outputs.tf
+      |   +- locals.tf
+      |   +- README.md
+
+      ・・・
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■  コンテナ
+■■■
+■■■■■■■■■■■■■■■■■■
+
+-------------------------------------------------------
+【execution_role_arn】
+
+ﾀｽｸ起動時にECSｻｰﾋﾞｽが使うﾛｰﾙ（ECRｱｸｾｽ、CloudWatch Logsｱｸｾｽ）
+
+.......................................................
+【task_role_arn】
+
+ﾀｽｸ内のｺﾝﾃﾅがAWSﾘｿｰｽにｱｸｾｽ（S3ｱｸｾｽ、DynamoDBｱｸｾｽ、SQSｱｸｾｽ）
+
+-------------------------------------------------------
+【awsvpc】
+
+・Fargateの場合、awsvpcが必須
+・各ﾀｽｸにENIを割当
+・同一ﾀｽｸ内で同じﾎﾟｰﾄ番号は使用不可
+・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟはﾀｽｸ単位
+・ｺﾝﾃﾅ名での名前解決は不可
+・同一ﾀｽｸ内のｺﾝﾃﾅ間通信は、localhostを使用
+-------------------------------------------------------
+
+
+
+
+
+
