@@ -1,0 +1,881 @@
+cheat-sheet-aws-cli.txt Ver 0.00
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　ネットワーク
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+■VPCの作成
+
+　=============================
+　自動作成される
+
+　・VPC
+　・ﾙｰﾄﾃｰﾌﾞﾙ     （ﾃﾞﾌｫﾙﾄ：設定なし）
+　・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ （ﾃﾞﾌｫﾙﾄ：ｲﾝﾊﾞｳﾝﾄﾞ=全拒否、ｱｳﾄﾊﾞｳﾝﾄﾞ=全許可）
+　・ﾈｯﾄﾜｰｸACL    （ﾃﾞﾌｫﾙﾄ：ｲﾝﾊﾞｳﾝﾄﾞ=全許可、ｱｳﾄﾊﾞｳﾝﾄﾞ=全許可）
+　・DHCPｵﾌﾟｼｮﾝｾｯﾄ（ﾃﾞﾌｫﾙﾄ）
+
+　CIDR（推奨）
+
+　　10.0.0.0/16
+　=============================
+　※）同一VPC・同じSG　：ﾃﾞﾌｫﾙﾄ：ｲﾝﾊﾞｳﾝﾄﾞ=全許可
+　※）同一VPC・異なるSG：ﾃﾞﾌｫﾙﾄ：ｲﾝﾊﾞｳﾝﾄﾞ=全拒否
+
+aws ec2 create-vpc `
+  --cidr-block 10.0.0.0/16 `
+  --tag-specifications `
+  'ResourceType=vpc,Tags=[{Key=Name,Value=myvpc}]'
+
+====================================
+■VPCの削除
+
+　=============================
+　事前削除が必要なもの
+
+　・ｻﾌﾞﾈｯﾄ
+　・IGW、NATGW
+　・ﾙｰﾄﾃｰﾌﾞﾙ、ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ、ﾈｯﾄﾜｰｸACL（ﾃﾞﾌｫﾙﾄ以外）
+　・EC2、RDS、ECS
+　・VPCｴﾝﾄﾞﾎﾟｲﾝﾄ
+　・VPCﾋﾟｱﾘﾝｸﾞ
+　=============================
+
+aws ec2 delete-vpc --vpc-id $(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+====================================
+■ｻﾌﾞﾈｯﾄの作成
+
+　=============================
+　ﾙｰﾄﾃｰﾌﾞﾙ
+
+　・ﾃﾞﾌｫﾙﾄ（VPC内はlocal）
+
+　CIDR（推奨）
+
+　　10.0.0.0/24
+　　10.0.1.0/24
+　　10.0.2.0/24
+　　10.0.3.0/24
+　=============================
+
+------------------------------------
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+------------------------------------
+aws ec2 create-subnet `
+  --vpc-id $VPC_ID `
+  --cidr-block 10.0.0.0/24 `
+  --availability-zone ap-northeast-1a `
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=public-subnet01}]'
+
+....................................
+aws ec2 create-subnet `
+  --vpc-id $VPC_ID `
+  --cidr-block 10.0.1.0/24 `
+  --availability-zone ap-northeast-1c `
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=public-subnet02}]'
+
+....................................
+aws ec2 create-subnet `
+  --vpc-id $VPC_ID `
+  --cidr-block 10.0.2.0/24 `
+  --availability-zone ap-northeast-1a `
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=private-subnet01}]'
+
+....................................
+aws ec2 create-subnet `
+  --vpc-id $VPC_ID `
+  --cidr-block 10.0.3.0/24 `
+  --availability-zone ap-northeast-1c `
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=private-subnet02}]'
+
+====================================
+■ｻﾌﾞﾈｯﾄの削除
+
+aws ec2 delete-subnet `
+  --subnet-id $(aws ec2 describe-subnets `
+    --filters "Name=tag:Name,Values=********" `
+    --query "Subnets[0].SubnetId" `
+    --output text)
+
+====================================
+■ﾙｰﾄﾃｰﾌﾞﾙの作成
+
+【ﾙｰﾄﾃｰﾌﾞﾙの作成】
+
+【ﾙｰﾄﾃｰﾌﾞﾙをｻﾌﾞﾈｯﾄにｱﾀｯﾁ】
+
+------------------------------------
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+PUBLIC_SUBNET_ID1=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet01" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PUBLIC_SUBNET_ID2=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet02" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PRIVATE_SUBNET_ID1=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=private-subnet01" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PRIVATE_SUBNET_ID2=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=private-subnet02" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+------------------------------------
+
+【ﾙｰﾄﾃｰﾌﾞﾙの作成】
+
+aws ec2 create-route-table `
+  --vpc-id $VPC_ID `
+  --tag-specifications 'ResourceType=route-table, `
+  Tags=[{Key=Name,Value=public-rt}]'
+
+PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=public-rt" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+【ﾙｰﾄﾃｰﾌﾞﾙをｻﾌﾞﾈｯﾄにｱﾀｯﾁ】
+
+aws ec2 associate-route-table `
+  --route-table-id PUBLIC_ROUTE_TABLE_ID `
+  --subnet-id $PUBLIC_SUBNET_ID1
+
+------------------------------------
+
+【ﾙｰﾄﾃｰﾌﾞﾙをｻﾌﾞﾈｯﾄにｱﾀｯﾁ】
+
+aws ec2 associate-route-table `
+  --route-table-id PUBLIC_ROUTE_TABLE_ID `
+  --subnet-id $PUBLIC_SUBNET_ID2
+
+------------------------------------
+
+【ﾙｰﾄﾃｰﾌﾞﾙの作成】
+
+aws ec2 create-route-table `
+  --vpc-id $VPC_ID `
+  --tag-specifications 'ResourceType=route-table, `
+  Tags=[{Key=Name,Value=private-rt01}]'
+
+PRIVATE_ROUTE_TABLE_ID1=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=private-rt01" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+【ﾙｰﾄﾃｰﾌﾞﾙをｻﾌﾞﾈｯﾄにｱﾀｯﾁ】
+
+aws ec2 associate-route-table `
+  --route-table-id PRIVATE_ROUTE_TABLE_ID1 `
+  --subnet-id $PRIVATE_SUBNET_ID1
+
+------------------------------------
+
+【ﾙｰﾄﾃｰﾌﾞﾙの作成】
+
+aws ec2 create-route-table `
+  --vpc-id $VPC_ID `
+  --tag-specifications 'ResourceType=route-table, `
+  Tags=[{Key=Name,Value=private-rt02}]'
+
+PRIVATE_ROUTE_TABLE_ID2=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=private-rt02" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+【ﾙｰﾄﾃｰﾌﾞﾙをｻﾌﾞﾈｯﾄにｱﾀｯﾁ】
+
+aws ec2 associate-route-table `
+  --route-table-id $PRIVATE_ROUTE_TABLE_ID2 `
+  --subnet-id $PRIVATE_SUBNET_ID2
+
+====================================
+■IGWの作成
+
+　=============================
+　VPCに対して１つの構造
+
+　・IGWはVPCにｱﾀｯﾁが必要
+　・内部で冗長化されている
+　・EC2、ALBで使用（ﾙｰﾄﾃｰﾌﾞﾙ、ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ、ﾊﾟﾌﾞﾘｯｸIP）
+　=============================
+
+【ｲﾝﾀｰﾈｯﾄGWの作成】
+
+【ｲﾝﾀｰﾈｯﾄGWをVPCにｱﾀｯﾁ】
+
+【ﾙｰﾄﾃｰﾌﾞﾙの設定】
+
+------------------------------------
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=public-rt" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+------------------------------------
+
+【ｲﾝﾀｰﾈｯﾄGWの作成】
+
+aws ec2 create-internet-gateway `
+  --tag-specifications 'ResourceType=internet-gateway, `
+  Tags=[{Key=Name,Value=internet-gw}]'
+
+IGW_ID=$(aws ec2 describe-internet-gateways `
+  --filters "Name=tag:Name,Values=internet-gw" `
+  --query "InternetGateways[0].InternetGatewayId" `
+  --output text)
+
+【ｲﾝﾀｰﾈｯﾄGWをVPCにｱﾀｯﾁ】
+
+aws ec2 attach-internet-gateway `
+  --internet-gateway-id $IGW_ID `
+  --vpc-id $VPC_ID
+
+【ﾙｰﾄﾃｰﾌﾞﾙの設定】
+
+aws ec2 create-route `
+  --route-table-id $PUBLIC_ROUTE_TABLE_ID `
+  --destination-cidr-block 0.0.0.0/0 `
+  --gateway-id $IGW_ID
+
+====================================
+■NATGWの作成
+
+　=============================
+　ﾊﾟﾌﾞﾘｯｸｻﾌﾞﾈｯﾄに対して１つの構造
+
+　・ﾊﾟﾌﾞﾘｯｸｻﾌﾞﾈｯﾄに配置（ﾊﾟﾌﾞﾘｯｸIP付与）
+　・ﾌﾟﾗｲﾍﾞｰﾄｻﾌﾞﾈｯﾄのﾙｰﾄﾃｰﾌﾞﾙにﾙｰﾄ追加
+　=============================
+
+【NATGWの作成】
+
+【ﾙｰﾄﾃｰﾌﾞﾙにﾙｰﾄ追加】
+
+------------------------------------
+
+PUBLIC_SUBNET_ID1=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet01" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PUBLIC_SUBNET_ID2=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet02" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PRIVATE_ROUTE_TABLE_ID1=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=private-rt01" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+PRIVATE_ROUTE_TABLE_ID2=$(aws ec2 describe-route-tables `
+  --filters "Name=tag:Name,Values=private-rt02" `
+  --query "RouteTables[0].RouteTableId" `
+  --output text)
+
+ALLOCATION_ID1=$(aws ec2 allocate-address `
+  --domain vpc `
+  --query "AllocationId" `
+  --output text)
+
+ALLOCATION_ID2=$(aws ec2 allocate-address `
+  --domain vpc `
+  --query "AllocationId" `
+  --output text)
+------------------------------------
+
+【NATGWの作成】
+
+aws ec2 create-nat-gateway `
+  --subnet-id PUBLIC_SUBNET_ID1 `
+  --allocation-id $ALLOCATION_ID1 `
+  --tag-specifications 'ResourceType=natgateway, `
+  Tags=[{Key=Name,Value=nat-gw01}]'
+
+NATGW_ID1=$(aws ec2 describe-nat-gateways `
+  --filter "Name=tag:Name,Values=nat-gw01" `
+  --query "NatGateways[0].NatGatewayId" `
+  --output text)
+
+【ﾙｰﾄﾃｰﾌﾞﾙにﾙｰﾄ追加】
+
+aws ec2 create-route `
+  --route-table-id $PRIVATE_ROUTE_TABLE_ID1 `
+  --destination-cidr-block 0.0.0.0/0 `
+  --nat-gateway-id $NATGW_ID1
+
+------------------------------------
+
+【NATGWの作成】
+
+aws ec2 create-nat-gateway `
+  --subnet-id PUBLIC_SUBNET_ID2= `
+  --allocation-id $ALLOCATION_ID2 `
+  --tag-specifications 'ResourceType=natgateway, `
+  Tags=[{Key=Name,Value=nat-gw02}]'
+
+NATGW_ID2=$(aws ec2 describe-nat-gateways `
+  --filter "Name=tag:Name,Values=nat-gw02" `
+  --query "NatGateways[0].NatGatewayId" `
+  --output text)
+
+【ﾙｰﾄﾃｰﾌﾞﾙにﾙｰﾄ追加】
+
+aws ec2 create-route `
+  --route-table-id $PRIVATE_ROUTE_TABLE_ID2 `
+  --destination-cidr-block 0.0.0.0/0 `
+  --nat-gateway-id $NATGW_ID2
+
+====================================
+■ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟの作成（ALB用）
+
+【ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟの作成】
+
+【ｲﾝﾊﾞｳﾝﾄﾞﾙｰﾙの追加】
+
+------------------------------------
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+【ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟの作成】
+
+aws ec2 create-security-group `
+  --group-name web-alb-sg `
+  --description "web-alb-sg" `
+  --vpc-id $VPC_ID `
+  --tag-specifications 'ResourceType=security-group, `
+  Tags=[{Key=Name,Value=web-alb-sg}]'
+
+------------------------------------
+
+WEB_ALB_SG_ID=$(aws ec2 describe-security-groups `
+  --filters "Name=group-name,Values=web-alb-sg" `
+  --query "SecurityGroups[0].GroupId" `
+  --output text)
+
+【ｲﾝﾊﾞｳﾝﾄﾞﾙｰﾙの追加】
+
+aws ec2 authorize-security-group-ingress `
+  --group-id $WEB_ALB_SG_ID `
+  --protocol tcp `
+  --port 80 `
+  --cidr 0.0.0.0/0
+
+aws ec2 authorize-security-group-ingress `
+  --group-id $WEB_ALB_SG_ID `
+  --protocol tcp `
+  --port 443 `
+  --cidr 0.0.0.0/0
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　コンピューティング
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+■EC2の作成（Webｻｰﾊﾞ）
+
+　=============================
+　冗長構成の推奨作成手順
+
+　・【1】EC2を構築
+　・【1】Webｻｰﾊﾞをｲﾝｽﾄｰﾙし設定を完了
+　・【2】ｲﾒｰｼﾞの作成でｶｽﾀﾑAMIを作成
+　・【2】AMIからEC2を起動
+　・【ALB】EC2をALBに登録
+　・【ASG】作成したAMIを起動ﾃﾝﾌﾟﾚｰﾄに登録
+　・【ASG】Auto Scaling Groupを作成
+
+　=============================
+
+【事前準備】
+
+・ｷｰﾍﾟｱ
+・VPC
+・ﾊﾟﾌﾞﾘｯｸｻﾌﾞﾈｯﾄ（２つ）
+
+【設定】
+
+【ｷｰﾍﾟｱの作成】
+
+【EC2の作成】
+　・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ（ﾃﾞﾌｫﾙﾄ）
+　・AMI ID（Amazon Linux2）
+　・ｲﾝｽﾀﾝｽﾀｲﾌﾟ（t2.micro）
+　・Public IP（無効）
+
+【EC2のAMIを作成】
+
+【AMIからEC2の作成】
+
+------------------------------------
+
+【ｷｰﾍﾟｱの作成】
+
+aws ec2 create-key-pair `
+  --key-name yasuo-nakata `
+  --query 'KeyMaterial' `
+  --output text > yasuo-nakata.pem
+
+chmod 400 my-key-pair.pem
+
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+PUBLIC_SUBNET_ID1=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet01" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PUBLIC_SUBNET_ID2=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet02" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+------------------------------------
+
+【EC2の作成】
+
+aws ec2 run-instances `
+  --image-id ami-0c3fd0f5d33134a76 `
+  --instance-type t2.micro `
+  --key-name yasuo-nakata `
+  --subnet-id $PUBLIC_SUBNET_ID1 `
+  --security-group-ids $(aws ec2 describe-security-groups `
+      --filters "Name=group-name,Values=default" `
+      --query "SecurityGroups[0].GroupId" `
+      --output text) `
+  --associate-public-ip-address false `
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=web01-ec2}]'
+
+【EC2のAMIを作成】
+
+INSTANCE_ID=$(aws ec2 describe-instances `
+  --filters "Name=tag:Name,Values=web01-ec2" `
+  --query "Reservations[*].Instances[*].InstanceId" `
+  --output text)
+
+aws ec2 create-image `
+    --instance-id $INSTANCE_ID `
+    --name "webserver-ami" `
+    --description "AMI for redundant web server"
+
+【AMIからEC2の作成】
+
+AMI_ID=$(aws ec2 describe-images `
+  --owners self `
+  --filters "Name=name,Values=webserver-ami" `
+  --query "Images[0].ImageId" `
+  --output text)
+
+aws ec2 run-instances `
+    --image-id $AMI_ID `
+  --instance-type t2.micro `
+  --key-name yasuo-nakata `
+  --subnet-id $PUBLIC_SUBNET_ID2 `
+  --security-group-ids $(aws ec2 describe-security-groups `
+      --filters "Name=group-name,Values=default" `
+      --query "SecurityGroups[0].GroupId" `
+      --output text) `
+  --associate-public-ip-address false `
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=web02-ec2}]'
+
+====================================
+■ﾛｰﾄﾞﾊﾞﾗﾝｻの作成
+
+【事前準備】
+
+・VPC
+・ﾊﾟﾌﾞﾘｯｸｻﾌﾞﾈｯﾄ（２つ）
+・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ（ALB用、ﾃﾞﾌｫﾙﾄ）
+
+【設定】
+
+【ﾛｰﾄﾞﾊﾞﾗﾝｻの作成】
+　・ｽｷｰﾑ（外部公開）
+　・type（ALB）
+
+【ﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟの作成（ALB => ﾎﾟｰﾄ番号）】
+
+【ﾘｽﾅｰの作成（ﾎﾟｰﾄ番号 => ALB）】
+
+【ﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟの登録（EC2をﾀｰｹﾞｯﾄに紐づけ）】
+
+------------------------------------
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+PUBLIC_SUBNET_ID1=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet01" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+PUBLIC_SUBNET_ID2=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=public-subnet02" `
+  --query "Subnets[0].SubnetId" `
+  --output text)
+
+WEB_ALB_SG_ID=$(aws ec2 describe-security-groups `
+  --filters "Name=group-name,Values=web-alb-sg" `
+  --query "SecurityGroups[0].GroupId" `
+  --output text)
+
+DEFAULT_SG_ID=$(aws ec2 describe-security-groups `
+  --filters "Name=group-name,Values=default" "Name=vpc-id,Values=$VPC_ID" `
+  --query "SecurityGroups[0].GroupId" `
+  --output text)
+
+------------------------------------
+
+【ﾛｰﾄﾞﾊﾞﾗﾝｻの作成】
+
+aws elbv2 create-load-balancer `
+  --name web-alb `
+  --subnets $PUBLIC_SUBNET_ID1 $PUBLIC_SUBNET_ID2 `
+  --security-groups $WEB_ALB_SG_ID $DEFAULT_SG_ID `
+  --scheme internet-facing `
+  --type application `
+  --ip-address-type ipv4 `
+  --tags Key=Name,Value=web-alb
+
+====================================
+
+【ﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟの作成（ALB => ﾎﾟｰﾄ番号）】
+
+aws elbv2 create-target-group `
+  --name web-alb-tg `
+  --protocol HTTP `
+  --port 3000 `
+  --vpc-id $VPC_ID `
+  --target-type instance `
+  --health-check-protocol HTTP `
+  --health-check-path / `
+  --health-check-interval-seconds 30 `
+  --tags Key=Name,Value=web-alb-tg
+
+====================================
+
+【ﾘｽﾅｰの作成（ﾎﾟｰﾄ番号 => ALB）】
+
+WEB_ALB_ARN=$(aws elbv2 describe-load-balancers `
+  --names web-alb `
+  --query "LoadBalancers[0].LoadBalancerArn" `
+  --output text)
+
+WEB_ALB_TG_ARN=$(aws elbv2 describe-target-groups `
+  --names web-alb-tg `
+  --query "TargetGroups[0].TargetGroupArn" `
+  --output text)
+
+aws elbv2 create-listener `
+  --load-balancer-arn $WEB_ALB_ARN `
+  --protocol HTTP `
+  --port 80 `
+  --default-actions Type=forward,TargetGroupArn=$WEB_ALB_TG_ARN
+
+====================================
+
+【ﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟの登録（EC2をﾀｰｹﾞｯﾄに紐づけ）】
+
+EC2_INSTANCE_IDS=$(aws ec2 describe-instances `
+  --filters "Name=tag:Name,Values=web01-ec2,web02-ec2" `
+            "Name=instance-state-name,Values=running" `
+  --query "Reservations[].Instances[].InstanceId" `
+  --output text)
+
+aws elbv2 register-targets `
+  --target-group-arn $WEB_ALB_TG_ARN `
+  --targets $(for id in $EC2_INSTANCE_IDS; do echo Id=$id,Port=3000; done)
+
+====================================
+■Auto Scallingの作成
+
+　=============================
+
+【事前準備】
+
+・VPC
+・ﾊﾟﾌﾞﾘｯｸｻﾌﾞﾈｯﾄ（２つ）
+・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ（ALB用、ﾃﾞﾌｫﾙﾄ）
+
+【設定】
+
+【起動ﾃﾝﾌﾟﾚｰﾄの作成】
+
+【Auto Scalling Groupの作成】
+　ﾀｸﾞを指定する（ｲﾝｽﾀﾝｽの名前）
+
+【ｽｹｰﾘﾝｸﾞﾎﾟﾘｼｰの追加】
+
+　=============================
+
+------------------------------------
+
+AMI_ID=$(aws ec2 describe-images `
+  --owners self `
+  --filters "Name=name,Values=webserver-ami" `
+  --query "Images[0].ImageId" `
+  --output text)
+
+------------------------------------
+
+【起動ﾃﾝﾌﾟﾚｰﾄの作成】
+
+aws ec2 create-launch-template `
+  --launch-template-name webserver-template `
+  --version-description "v1" `
+  --launch-template-data '{
+    "ImageId": "'"$AMI_ID"'",
+    "InstanceType": "t2.micro",
+    "KeyName": "yasuo-nakata",
+    "SecurityGroupIds": ["sg-********"]
+  }'
+
+【Auto Scalling Groupの作成】
+
+aws autoscaling create-auto-scaling-group `
+  --auto-scaling-group-name webserver-asg `
+  --launch-template "LaunchTemplateName=webserver-template,Version=1" `
+  --min-size 2 `
+  --max-size 4 `
+  --desired-capacity 2 `
+  --vpc-zone-identifier "subnet-********,subnet-********" `
+  --target-group-arns arn:aws:******** `
+  --health-check-type ELB `
+  --health-check-grace-period 60 `
+  --tags "Key=Name,Value=webserver,PropagateAtLaunch=true"
+
+【ｽｹｰﾘﾝｸﾞﾎﾟﾘｼｰの追加】
+
+aws cloudwatch put-metric-alarm `
+  --alarm-name cpu-high-scale-out `
+  --metric-name CPUUtilization `
+  --namespace AWS/EC2 `
+  --statistic Average `
+  --period 60 `
+  --threshold 70 `
+  --comparison-operator GreaterThanThreshold `
+  --dimensions Name=AutoScalingGroupName,Value=webserver-asg `
+  --evaluation-periods 2 `
+  --alarm-actions arn:aws:******** `
+  --unit Percent
+
+
+====================================
+■RDSの作成
+
+　=============================
+　ﾏﾙﾁAZ構成
+
+　・ﾌﾟﾗｲﾏﾘDBのﾚﾌﾟﾘｶを別AZに持つ
+　・ﾌﾟﾗｲﾏﾘDBの障害時に自動ﾌｪｰﾙｵｰﾊﾞｰ
+　・作成時にﾏﾙﾁAZ構成を指定可能
+　・ｼﾝｸﾞﾙAZからﾏﾙﾁAZに変更可能
+　=============================
+
+
+【事前準備】
+
+・VPC
+・ﾌﾟﾗｲﾍﾞｰﾄｻﾌﾞﾈｯﾄ（２つ）
+
+【設定】
+
+【ﾊﾟﾗﾒｰﾀｸﾞﾙｰﾌﾟの作成】【任意】
+　・ﾊﾟﾗﾒｰﾀｸﾞﾙｰﾌﾟﾌｧﾐﾘｰ（MySQL 8.0）
+
+【ｵﾌﾟｼｮﾝｸﾞﾙｰﾌﾟの作成】【任意】
+　・ｴﾝｼﾞﾝ（MySQL）
+　・ﾒｼﾞｬｰｴﾝｼﾞﾝﾊﾞｰｼﾞｮﾝ（8.0）
+
+【ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟの作成】【必須】
+　・ﾌﾟﾗｲﾍﾞｰﾄｻﾌﾞﾈｯﾄを２つ
+
+【DBｲﾝｽﾀﾝｽの作成】
+　・ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ（ﾃﾞﾌｫﾙﾄ）
+　・ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟ
+　・ﾏﾙﾁAZの指定
+
+------------------------------------
+
+VPC_ID=$(aws ec2 describe-vpcs `
+  --filters "Name=tag:Name,Values=myvpc" `
+  --query "Vpcs[0].VpcId" `
+  --output text)
+
+SUBNET_IDS=$(aws ec2 describe-subnets `
+  --filters "Name=tag:Name,Values=private-subnet01,private-subnet02" `
+  --query "Subnets[].SubnetId" `
+  --output text)
+
+DEFAULT_SG_ID=$(aws ec2 describe-security-groups `
+  --filters "Name=group-name,Values=default" "Name=vpc-id,Values=$VPC_ID" `
+  --query "SecurityGroups[0].GroupId" `
+  --output text)
+
+------------------------------------
+
+【ﾊﾟﾗﾒｰﾀｸﾞﾙｰﾌﾟの作成】【任意】
+
+aws rds create-db-parameter-group `
+  --db-parameter-group-name rds-pq `
+  --db-parameter-group-family mysql8.0 `
+  --description "My MySQL 8.0 Parameter Group"
+
+
+※）指定する場合
+
+--db-parameter-group-name rds-pg
+------------------------------------
+
+【ｵﾌﾟｼｮﾝｸﾞﾙｰﾌﾟの作成】【任意】
+
+aws rds create-option-group `
+  --option-group-name rds-og `
+  --engine-name mysql `
+  --major-engine-version 8.0 `
+  --option-group-description "My MySQL Option Group"
+
+※）指定する場合
+
+--option-group-name rds-og
+
+------------------------------------
+
+【ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟの作成】【必須】
+
+aws rds create-db-subnet-group `
+  --db-subnet-group-name rds-sg `
+  --db-subnet-group-description "My DB Subnet Group" `
+  --subnet-ids $SUBNET_IDS
+
+------------------------------------
+
+【DBｲﾝｽﾀﾝｽの作成】
+
+aws rds create-db-instance `
+  --db-instance-identifier rds `
+  --db-instance-class db.t2.micro `
+  --engine mysql `
+  --engine-version 8.0.35 `
+  --allocated-storage 20 `
+  --master-username admin `
+  --master-user-password '********' `
+  --vpc-security-group-ids $DEFAULT_SG_ID `
+  --db-subnet-group-name rds-sg `
+  --multi-az `
+  --tags Key=Name,Value=rds
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　コンテナ
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【ﾛｸﾞｸﾞﾙｰﾌﾟからﾛｸﾞｽﾄﾘｰﾑ名を取得】
+
+aws logs describe-log-streams `
+  --log-group-name "/project/prod/ecs" `
+  --order-by "LastEventTime" `
+  --descending `
+  --limit 10 `
+  --query "logStreams[].logStreamName"
+
+------------------------------------
+【ﾛｸﾞｽﾄﾘｰﾑ名からﾛｸﾞを取得】
+
+aws logs get-log-events `
+  --log-group-name "/project/prod/ecs" `
+  --log-stream-name "front/front/a043c6fb7b20449eb6e17d6e8d39231e" `
+  --limit 50
+
+====================================
+【ｸﾗｽﾀ名からﾀｽｸIDを取得】
+
+aws ecs list-tasks `
+  --cluster project-prod_ecs_cluster_app
+
+------------------------------------
+
+【ｸﾗｽﾀIDからﾀｽｸの状態を取得】
+
+aws ecs describe-tasks `
+  --cluster project-prod_ecs_cluster_app `
+  --tasks a18617b4e24a4727ab4e9bcf9da3bc2f
+
+====================================
+
+【ECS Exec】
+
+aws ecs execute-command `
+  --cluster project-prod_ecs_cluster_app `
+  --task 81be28d8c5cf4f7f9f369b174ef3b928 `
+  --container app `
+  --interactive `
+  --command "/bin/sh"
+
+====================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
