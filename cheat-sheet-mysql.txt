@@ -1,0 +1,41 @@
+cheat-sheet-mysql.txt Ver 1.00
+
+【SQLｻﾝﾌﾟﾙ】
+===============================================================
+docker container exec --interactive --tty db-container mysql -u root -p
+                                          ************
+
+
+
+mysql -u root -p
+
+
+
+CREATE DATABASE testdb;
+
+
+CREATE TABLE testdb.test_table (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50),
+    age INT
+);
+
+
+INSERT INTO
+    testdb.test_table (name, age) 
+    VALUES ('Test Taro', 30);
+
+
+UPDATE testdb.test_table
+    SET name = 'Updated Hanako', age = 28
+    WHERE id = 1;
+
+
+DELETE FROM testdb.test_table
+    WHERE id = 1;
+
+
+SELECT * FROM testdb.test_table;
+
+
+===============================================================
