@@ -1,0 +1,289 @@
+cheat-sheet-docker.txt Ver 1.00
+
+【docker ｺﾏﾝﾄﾞ】
+===============================================================
+       ｺﾏﾝﾄﾞ                                      説明
+---------------------------------------------------------------
+docker image ls                               ｲﾒｰｼﾞの一覧表示
+docker image build <ﾊﾟｽ>                      ｲﾒｰｼﾞを作成（Dockerfile）
+
+docker image tag   <ｲﾒｰｼﾞ名>                  ｲﾒｰｼﾞにﾀｸﾞをつける
+docker image push  <ｲﾒｰｼﾞ名>                  ｲﾒｰｼﾞをｱｯﾌﾟﾛｰﾄ
+docker image pull  <ｲﾒｰｼﾞ名>                  ｲﾒｰｼﾞをﾀﾞｳﾝﾛｰﾄﾞ
+docker image rm    <ｲﾒｰｼﾞ名>                  ｲﾒｰｼﾞを削除
+
+---------------------------------------------------------------
+docker container ls                           ｺﾝﾃﾅの一覧を表示
+docker container run    <ｲﾒｰｼﾞ名>             ｺﾝﾃﾅを作成、実行
+
+docker container logs   <ｺﾝﾃﾅ名>              ｺﾝﾃﾅのﾛｸﾞを表示
+docker container exec   <ｺﾝﾃﾅ名> bash         起動ｺﾝﾃﾅでbash実行
+docker container start  <ｺﾝﾃﾅ名>              ｺﾝﾃﾅを起動
+docker container stop   <ｺﾝﾃﾅ名>              ｺﾝﾃﾅを停止
+docker container rm     <ｺﾝﾃﾅ名>              ｺﾝﾃﾅの削除
+
+---------------------------------------------------------------
+docker network ls                             一覧表示
+docker network inspect    <ﾈｯﾄﾜｰｸ名>          詳細表示
+docker network create     <ﾈｯﾄﾜｰｸ名>          ﾈｯﾄﾜｰｸ作成（bridge）
+docker network rm         <ﾈｯﾄﾜｰｸ名>          ﾈｯﾄﾜｰｸ削除
+docker network connect    <ﾈｯﾄﾜｰｸ名><ｺﾝﾃﾅ名>  ｺﾝﾃﾅを接続
+docker network disconnect <ﾈｯﾄﾜｰｸ名><ｺﾝﾃﾅ名>  ｺﾝﾃﾅを切断
+
+---------------------------------------------------------------
+docker compose ps                             ｺﾝﾃﾅの一覧表示
+docker compose up                             ｺﾝﾃﾅを作成・起動
+docker compose down                           ｺﾝﾃﾅを停止・削除
+
+docker compose build                          ｲﾒｰｼﾞの作成
+docker compose start                          ｺﾝﾃﾅを起動
+docker compose restart                        ｺﾝﾃﾅを停止
+docker compose stop                           ｺﾝﾃﾅを再起動
+docker compose logs                           ｺﾝﾃﾅのﾛｸﾞを表示
+docker compose logs -f                        ｺﾝﾃﾅのﾛｸﾞをﾘｱﾙﾀｲﾑ表示
+docker compose exec <ｻｰﾋﾞｽ名> bash            起動ｺﾝﾃﾅでbash実行
+
+---------------------------------------------------------------
+docker image --help
+docker container --help
+docker compose --help
+
+---------------------------------------------------------------
+ﾄﾞﾗｲﾊﾞ　　　　   　説明
+---------------------------------------------------------------
+bridge    ﾛｰｶﾙﾎｽﾄ通信（ﾃﾞﾌｫﾙﾄ）
+host　　  ﾎｽﾄと同じﾈｯﾄﾜｰｸ
+none　　  ﾈｯﾄﾜｰｸなし（完全隔離）
+overlay   複数ﾎｽﾄ間通信用（Swarm 前提）
+macvlan   仮想NICに独自IPを割当（LANに直接接続）
+===============================================================
+
+
+
+【docker image のｵﾌﾟｼｮﾝ】
+===============================================================
+docker image ls [ｵﾌﾟｼｮﾝ]
+
+ --all(-a)                 中間ｲﾒｰｼﾞ（削除済）を含めて表示
+
+--------------------------------------------------------------
+docker image build [ｵﾌﾟｼｮﾝ] ﾊﾟｽ
+
+ --tag(-t) name:ﾀｸﾞ名      ｲﾒｰｼﾞにﾀｸﾞをつける
+ --file(-f) ﾌｧｲﾙ名         Dockerfileのﾌｧｲﾙ名を指定(ﾃﾞﾌｫﾙﾄ:Dockerfile)
+
+--------------------------------------------------------------
+docker image tag ｲﾒｰｼﾞ:ﾀｸﾞ
+
+--------------------------------------------------------------
+docker image push [ｵﾌﾟｼｮﾝ] ﾚﾎﾟｼﾞﾄﾘ:ﾀｸﾞ
+
+ --all-tags                全てのﾀｸﾞ
+
+--------------------------------------------------------------
+docker image pull [ｵﾌﾟｼｮﾝ]  ﾚﾎﾟｼﾞﾄﾘ:ﾀｸﾞ
+
+ --all-tags                全てのﾀｸﾞ
+
+※）ﾀｸﾞ：latest（最新ﾊﾞｰｼﾞｮﾝ）
+
+--------------------------------------------------------------
+ｲﾒｰｼﾞ名             用途
+--------------------------------------------------------------
+ubuntu          【Linux】Ubuntu
+alpine          【Linux】軽量 
+busybox         【Linux】超軽量
+nginx           【Webｻｰﾊﾞｰ】nginx
+httpd           【Webｻｰﾊﾞｰ】Apache
+wordpress       【Webｻｰﾊﾞｰ】WordPress
+mysql           【DB】mysql
+postgres        【DB】PostgreSQL	
+mongo           【DB】MongoDB NoSQL
+redis           【DB】ｷｬｯｼｭ	
+node            【実行環境】Node.js
+python          【実行環境】Python
+golang          【実行環境】Go言語
+php             【実行環境】PHP
+tomcat          【実行環境】Javaｻｰﾌﾞﾚｯﾄ
+openjdk         【実行環境】Java
+docker           Docker
+--------------------------------------------------------------
+docker image rm ｲﾒｰｼﾞ
+
+===============================================================
+
+
+
+【docker container のｵﾌﾟｼｮﾝ】
+===============================================================
+docker container ls        起動中のｺﾝﾃﾅの一覧
+docker container ls -a     全て（起動中、停止中）のｺﾝﾃﾅの一覧
+
+--------------------------------------------------------------
+docker container run [ｵﾌﾟｼｮﾝ] ｲﾒｰｼﾞ [ｺﾏﾝﾄﾞ]
+
+ --detach(-d)              ﾊﾞｯｸｸﾞﾗﾝﾄﾞで実行
+ -it                       ﾀｰﾐﾅﾙ付きで実行
+ --rm                      ｺﾝﾃﾅ終了時に自動削除
+ --name 名前               ｺﾝﾃﾅに名前を設定
+ -p ﾎｽﾄのﾎﾟｰﾄ:ｺﾝﾃﾅのﾎﾟｰﾄ    ﾎﾟｰﾄﾏｯﾋﾟﾝｸﾞ（例：-p 8080:80）
+ -e 環境変数=値            環境変数を設定
+ -v ﾎｽﾄのﾊﾟｽ:ｺﾝﾃﾅのﾊﾟｽ     ﾎﾞﾘｭｰﾑをﾏｳﾝﾄ
+ --network ﾈｯﾄﾜｰｸ          ﾈｯﾄﾜｰｸを指定
+ --entrypoint ｺﾏﾝﾄﾞ        ﾃﾞﾌｫﾙﾄのCMDを上書き
+
+【例：】
+docker container run -p 8080:80 --name first-container first-image
+
+--------------------------------------------------------------
+docker container logs
+
+ --follow(-f)              ﾘｱﾙﾀｲﾑﾛｸﾞを表示
+ --since TIME              開始時間（10m：10分前から）
+ --until TIME              終了時間（1h：１時間前まで）
+ --tail 行数               行数の指定（ﾃﾞﾌｫﾙﾄ：全て）
+ --timestamps(-t)          ﾛｸﾞにﾀｲﾑｽﾀﾝﾌﾟを追加
+ --details                 追加情報を含めて表示
+
+--------------------------------------------------------------
+docker container exec [ｵﾌﾟｼｮﾝ] ｺﾝﾃﾅ ｺﾏﾝﾄﾞ
+
+ --interactive(-i)     標準入力を開いたままにする（-it）
+ --tty(-t)             擬似ﾀｰﾐﾅﾙを割り当てる（-it）
+ --user(-u) ﾕｰｻﾞ       ﾕｰｻﾞを指定
+ --workdir ﾃﾞｨﾚｸﾄﾘ     ﾃﾞｨﾚｸﾄﾘを指定
+
+※）ｺﾝﾃﾅ名（ｺﾝﾃﾅ名 / ｺﾝﾃﾅID）
+
+--------------------------------------------------------------
+docker container start [ｵﾌﾟｼｮﾝ] ｺﾝﾃﾅ
+
+ --interactive(-i)     標準入力を開いたままにする（-it）
+
+【例：停止中の全てのｺﾝﾃﾅを起動】
+
+　docker container start $(docker ps -aq)
+
+※）ｺﾝﾃﾅ名（ｺﾝﾃﾅ名 / ｺﾝﾃﾅID）
+
+--------------------------------------------------------------
+docker container stop [ｵﾌﾟｼｮﾝ] ｺﾝﾃﾅ
+
+ --time(-t) 秒         指定秒数待機
+
+【例：起動中の全てのｺﾝﾃﾅを起動】
+
+　docker container stop $(docker ps -q)
+
+※）ｺﾝﾃﾅ名（ｺﾝﾃﾅ名 / ｺﾝﾃﾅID）
+
+--------------------------------------------------------------
+docker container rm ｺﾝﾃﾅID
+
+===============================================================
+
+
+
+【docker compose のｵﾌﾟｼｮﾝ】
+===============================================================
+docker compose up [ｵﾌﾟｼｮﾝ] [ｻｰﾋﾞｽ名]
+
+ --detach(-d)              ﾊﾞｯｸｸﾞﾗﾝﾄﾞで実行
+ --build                   ｺﾝﾃﾅを起動する前にｲﾒｰｼﾞを再ﾋﾞﾙﾄﾞ
+ --force-recreate          既存のｺﾝﾃﾅを削除して、新しく作成
+ --no-deps ｻｰﾋﾞｽ名         依存関係を無視して、指定ｻｰﾋﾞｽのみ実行
+ --remove-orphans          docker-compose.yml にないｺﾝﾃﾅを削除
+ --scale ｻｰﾋﾞｽ名=数        指定ｻｰﾋﾞｽのｺﾝﾃﾅ数を増減
+
+--------------------------------------------------------------
+docker compose down [ｵﾌﾟｼｮﾝ]
+
+ --rmi all                 全てのｲﾒｰｼﾞを削除
+ --rmi local               ﾛｰｶﾙでﾋﾞﾙﾄﾞしたｲﾒｰｼﾞのみ削除
+ --volumes(-v)             作成したﾎﾞﾘｭｰﾑを削除
+
+--------------------------------------------------------------
+docker compose ps [ｵﾌﾟｼｮﾝ]
+
+ -all(-a)                  全てのｺﾝﾃﾅを表示（停止中含む）
+ --quiet(-q)               ｺﾝﾃﾅID のみ表示
+ --services                ｺﾝﾃﾅ名ではなくｻｰﾋﾞｽ名のみ表示
+
+===============================================================
+
+
+
+【Dockerの設定ﾌｧｲﾙ】
+===============================================================
+【Dockerfile】
+　Dockerｲﾒｰｼﾞを作成するための設定ﾌｧｲﾙ
+
+
+　# ﾍﾞｰｽとなるｲﾒｰｼﾞを指定（Ubuntu）
+　FROM ubuntu:latest  
+
+　# ﾒﾀﾃﾞｰﾀ（作成者情報）を追加
+　LABEL maintainer="yourname@example.com"
+
+　# 作業ﾃﾞｨﾚｸﾄﾘを設定
+　WORKDIR /app  
+
+　# ﾎｽﾄのﾌｫﾙﾀﾞをｺﾝﾃﾅのﾌｫﾙﾀﾞにｺﾋﾟｰ
+　COPY src/ /app/  
+
+　# 必要なﾊﾟｯｹｰｼﾞをｲﾝｽﾄｰﾙ（`RUN` はビルド時に実行）
+　RUN apt-get update && apt-get install -y python3
+
+　# ｺﾝﾃﾅが起動したときに実行するｺﾏﾝﾄﾞ
+　CMD ["python3", "-m", "http.server", "8000"]
+
+　# ｺﾝﾃﾅの `8000` 番ﾎﾟｰﾄを開放
+　EXPOSE 8000
+
+===============================================================
+
+
+
+===============================================================
+【docker-compose.yml】
+　複数のｺﾝﾃﾅをまとめて管理する設定ﾌｧｲﾙ
+
+
+　version: "3.8"                        # Composeﾌｧｲﾙのﾊﾞｰｼﾞｮﾝ
+
+　services:
+　  web:
+　    build: ./web                      # 「./web/Dockerfile」からﾋﾞﾙﾄﾞ
+　    image: my-web-app                 # ｲﾒｰｼﾞ名を設定
+　    ports:
+　      - "8080:80"                     # ﾎｽﾄの8080をｺﾝﾃﾅの80にﾏｯﾋﾟﾝｸﾞ
+　    volumes:
+　      - ./html:/usr/share/nginx/html  # ﾌｫﾙﾀﾞをｺﾝﾃﾅにﾏｳﾝﾄ
+　    depends_on:
+　      - db                            # db -> webの順にｻｰﾋﾞｽ起動
+
+　  db:
+　    image: mysql:latest               # MySQLの公式ｲﾒｰｼﾞ
+　    environment:
+　      MYSQL_ROOT_PASSWORD: rootpass   # 環境変数を設定
+　      MYSQL_DATABASE: my_database
+　    volumes:
+　      - db-data:/var/lib/mysql        # MySQLのﾃﾞｰﾀを永続化
+
+　volumes:
+　  db-data:                            # MySQL用ﾎﾞﾘｭｰﾑを定義
+
+
+===============================================================
+
+【ﾎﾟｰﾄ番号】
+==========================================
+　ﾌﾛﾝﾄｴﾝﾄﾞ         HTTP               80
+ (ﾘﾊﾞｰｽﾌﾟﾛｷｼｰ)     HTTPS             443
+------------------------------------------
+　APIｻｰﾊﾞ          HTTP             8080
+　                 HTTPS            8443
+------------------------------------------
+　DBｻｰﾊﾞ           MySQL/MariaDB    3306
+　                 PostgreSQL       5432
+==========================================
