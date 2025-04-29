@@ -1,4 +1,4 @@
-cheat-sheet-aws-cli.txt Ver 0.00
+cheat-sheet-aws-cli.txt Ver 0.01
 
 ■■■■■■■■■■■■■■■■■■
 ■■■
@@ -447,9 +447,9 @@ aws ec2 authorize-security-group-ingress `
 【ｷｰﾍﾟｱの作成】
 
 aws ec2 create-key-pair `
-  --key-name yasuo-nakata `
+  --key-name @@@@@@@@ `
   --query 'KeyMaterial' `
-  --output text > yasuo-nakata.pem
+  --output text > my-key-pair.pem
 
 chmod 400 my-key-pair.pem
 
@@ -476,7 +476,7 @@ PUBLIC_SUBNET_ID2=$(aws ec2 describe-subnets `
 aws ec2 run-instances `
   --image-id ami-0c3fd0f5d33134a76 `
   --instance-type t2.micro `
-  --key-name yasuo-nakata `
+  --key-name @@@@@@@@ `
   --subnet-id $PUBLIC_SUBNET_ID1 `
   --security-group-ids $(aws ec2 describe-security-groups `
       --filters "Name=group-name,Values=default" `
@@ -508,7 +508,7 @@ AMI_ID=$(aws ec2 describe-images `
 aws ec2 run-instances `
     --image-id $AMI_ID `
   --instance-type t2.micro `
-  --key-name yasuo-nakata `
+  --key-name @@@@@@@@ `
   --subnet-id $PUBLIC_SUBNET_ID2 `
   --security-group-ids $(aws ec2 describe-security-groups `
       --filters "Name=group-name,Values=default" `
@@ -667,7 +667,7 @@ aws ec2 create-launch-template `
   --launch-template-data '{
     "ImageId": "'"$AMI_ID"'",
     "InstanceType": "t2.micro",
-    "KeyName": "yasuo-nakata",
+    "KeyName": "@@@@@@@@",
     "SecurityGroupIds": ["sg-********"]
   }'
 
