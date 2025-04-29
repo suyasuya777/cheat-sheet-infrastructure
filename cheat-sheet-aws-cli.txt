@@ -1,4 +1,4 @@
-cheat-sheet-aws-cli.txt Ver 0.01
+cheat-sheet-aws-cli.txt Ver 0.10
 
 ■■■■■■■■■■■■■■■■■■
 ■■■
@@ -860,11 +860,100 @@ aws ecs execute-command `
 
 ====================================
 
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　ＣｏｄｅＣｏｎｎｅｃｔｉｏｎ
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【接続状態の確認】
+
+aws codestar-connections get-connection `
+　 --connection-arn arn:aws:codeconnections:*************
 
 
+====================================
 
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　ＩＡＭ
+■■■
+■■■■■■■■■■■■■■■■■■
 
+====================================
 
+【実行ﾕｰｻﾞの確認】
+
+aws sts get-caller-identity
+
+------------------------------------
+
+【ﾕｰｻﾞの所属ｸﾞﾙｰﾌﾟの確認】
+
+aws iam list-groups-for-user `
+  --user-name @@@@@@@@
+
+====================================
+
+【ｸﾞﾙｰﾌﾟにｱﾀｯﾁされてるﾎﾟﾘｼｰの一覧取得】
+
+aws iam list-attached-group-policies `
+  --group-name Developers
+
+------------------------------------
+
+【ｸﾞﾙｰﾌﾟにｱﾀｯﾁされてるｲﾝﾗｲﾝﾎﾟﾘｼｰの一覧取得】
+
+aws iam list-group-policies `
+  --group-name Developers
+
+====================================
+
+【ﾕｰｻﾞにｱﾀｯﾁされてるﾎﾟﾘｼｰの一覧取得】
+
+aws iam list-attached-user-policies `
+  --user-name @@@@@@@@
+
+------------------------------------
+
+【ﾕｰｻﾞにｱﾀｯﾁされてるｲﾝﾗｲﾝﾎﾟﾘｼｰの一覧取得】
+
+aws iam list-user-policies `
+  --user-name @@@@@@@@
+
+------------------------------------
+
+【ｲﾝﾗｲﾝﾎﾟﾘｼｰの内容取得】
+
+aws iam get-user-policy `
+  --user-name @@@@@@@@ `
+  --policy-name Allow-CodeConnections-Use
+
+====================================
+
+【IAMﾛｰﾙの内容取得（信頼ﾎﾟﾘｼｰ）】
+
+aws iam get-role `
+　 --role-name project-prod-codebuild-role
+
+------------------------------------
+
+【IAMﾛｰﾙのｲﾝﾗｲﾝﾎﾟﾘｼｰの一覧取得】
+
+aws iam list-role-policies `
+  --role-name project-prod-codebuild-role
+
+------------------------------------
+
+【IAMﾛｰﾙに設定されているｲﾝﾗｲﾝﾎﾟﾘｼｰの内容取得】
+
+aws iam get-role-policy `
+  --role-name project-prod-codebuild-role `
+  --policy-name project-prod-codebuild-inline-policy
+
+====================================
 
 
 
