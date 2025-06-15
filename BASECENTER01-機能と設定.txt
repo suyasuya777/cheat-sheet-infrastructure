@@ -1,0 +1,128 @@
+■WebSAM　BASE Center（AG）の機能と設定ファイルと主要設定項目
+
+■■■　WebSAM BASE Center（AG）概要
+
+■役割
+
+　・各監視対象ホスト上で稼働
+　・OS／ミドルウェアの稼働状態・性能・ログ／イベントを収集
+　・BASE Center MG（Manager）へ通知するエージェント
+
+■機能
+
+　・リソース監視
+　　CPU／メモリ／ディスク／スワップの閾値監視
+
+　・プロセス／サービス監視
+　　指定プロセス数・死活をポーリング
+
+　・ログ／イベント監視
+　　syslog・任意ログの文字列マッチ、SNMP trap 送信
+
+　・自動回復アクション
+　　シェルスクリプト実行／サービス再起動
+
+　・心拍監視
+　　MG への heartbeat パケット送信による生存確認
+
+　・自己監視／ログローテーション
+
+　・HPE NNMi や JobCenter など他 WebSAM 製品とのイベント連携
+
+　・ライフサイクル
+　　R12.2 で販売終了（2011-04-30）・サポート終了（2014-12-31）
+
+■ディレクトリ構成
+
+  /opt/NECSSBSag/   ← 製品ルート
+   ├─bin/         ← 起動･停止スクリプト (bcagstart, bcagstop)
+   ├─conf/        ← 主要設定ファイル
+   ├─lib/         ← ライブラリ／プラグイン
+   ├─log/         ← エージェント自己ログ
+   └─action/      ← 自動回復スクリプト格納先
+
+■設定ファイルと用途
+
+　bcagent.cfg    … エージェント全体の動作パラメータ
+　bc_event.conf  … ログ・イベント監視ルール
+　bc_mon.conf    … リソース／プロセス閾値定義
+　bc_action.conf … イベント発生時に実行するアクション紐付け
+　bc_ssl.conf    … MG との SSL 通信設定（証明書・暗号スイート）
+　bc_env         … 環境変数（LANG、TMPDIR など）
+
+　systemd ユニット（RHEL 7 以降）: /etc/systemd/system/bcagent.service
+
+■bcagent.cfg
+
+# --- MG 接続先 ---
+MANAGER_HOST       = <MGホスト名 or IP>
+MANAGER_PORT       = 55000           # デフォルト
+HEARTBEAT_INTERVAL = 30              # 秒
+RETRY_COUNT        = 3
+RETRY_INTERVAL     = 10              # 秒
+
+# --- エージェント動作 ---
+LOG_LEVEL          = INFO            # DEBUG/INFO/WARN/ERROR
+EVENT_QUEUE_SIZE   = 1000            # 保持キュー数
+DISCOVERY_ENABLE   = YES             # 自動登録
+
+# --- プロキシ（閉域網用） ---
+PROXY_HOST         = <proxy.example.com>
+PROXY_PORT         = 8080
+
+# --- SSL 通信 ---
+SSL_ENABLE         = YES
+SSL_CERT_FILE      = conf/agent.crt
+SSL_KEY_FILE       = conf/agent.key
+
+■bc_event.conf
+
+# syslog 文字列検知
+SYSLOG /var/log/messages
+  "kernel:.*Out of memory"  SEVERITY=CRITICAL  ACTION=notify_ops.sh
+# アプリケーション専用ログ
+FILE   /var/log/myapp/error.log
+  "FATAL"                   SEVERITY=MAJOR
+
+■bc_mon.conf
+
+CPU      WARNING=80  CRITICAL=90
+MEMORY   WARNING=70  CRITICAL=85
+DISK     /          WARNING=75  CRITICAL=90
+PROCESS  httpd      MIN=2  MAX=20  ACTION=restart_httpd.sh
+
+■運用上のポイント
+
+　・SELinux
+　　RHEL 9 で Enforcing 運用する場合、独自ポリシー作成
+　　または setsebool -P domain_can_mmap_files on 等の調整が必要
+
+　・systemd 連携
+　　Restart=on-failure を指定して自動復帰を有効化
+
+　・フェイルオーバ
+　　CLUSTERPRO 等の HA 製品と併用する場合、
+　　VIP 切替え後に bcagent --resend でマネージャへ再登録させる
+
+　・ログ保全
+　　/opt/NECSSBSag/log/*.log は自己ローテーション（7 世代）がデフォルト
+　　CloudWatch Logs 等へ転送する場合は size と rotate を縮小
+
+　・アップグレード
+　　旧 RHEL 6 マシンでは bcagent.conf の LIB_DIR=/usr/lib 指定が
+　　存在することがあるが、64 ビット環境では /usr/lib64 に変更する
+
+■注意
+
+　BASE Center AG は公式サポートが終了しているため、
+　RHEL 9 + AWS Nitro 環境で利用する場合は 動作保証外
+　上記パスやパラメータは代表例であり、
+　導入バージョン・カスタマイズ状況によって異なります。
+
+　移行時には 最新パッチ適用／テスト環境での事前検証を
+　強く推奨してください。
+
+
+
+
+
