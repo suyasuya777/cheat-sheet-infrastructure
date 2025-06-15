@@ -2,6 +2,34 @@ cheat-sheet-aws-cli.txt Ver 0.10
 
 ■■■■■■■■■■■■■■■■■■
 ■■■
+■■■　Powershell
+■■■
+■■■■■■■■■■■■■■■■■■
+
+【ﾛｸﾞ取得開始】
+
+Start-Transcript -Path "D:\logs\ps_session.log" -Append
+
+【ﾛｸﾞ取得終了（exit でも可）】
+
+Stop-Transcript
+
+【ﾛｸﾞ取得指定でPowershell起動】
+
+powershell.exe -NoExit -Command "Start-Transcript -Path 'D:\logs\ps_session.log' -Append"
+
+【teratermﾏｸﾛでPowershellを起動】
+
+; teraterm_local_ps.ttl
+; ローカルで PowerShell を起動し、Transcript も開始する例
+
+; ローカルコマンド実行
+localcmd 'powershell.exe -NoExit -Command "Start-Transcript -Path ''C:\Temp\teraterm_ps.log'' -Append"'
+
+
+
+■■■■■■■■■■■■■■■■■■
+■■■
 ■■■　ネットワーク
 ■■■
 ■■■■■■■■■■■■■■■■■■
@@ -810,58 +838,6 @@ aws rds create-db-instance `
 
 ■■■■■■■■■■■■■■■■■■
 ■■■
-■■■　コンテナ
-■■■
-■■■■■■■■■■■■■■■■■■
-
-====================================
-
-【ﾛｸﾞｸﾞﾙｰﾌﾟからﾛｸﾞｽﾄﾘｰﾑ名を取得】
-
-aws logs describe-log-streams `
-  --log-group-name "/project/prod/ecs" `
-  --order-by "LastEventTime" `
-  --descending `
-  --limit 10 `
-  --query "logStreams[].logStreamName"
-
-------------------------------------
-【ﾛｸﾞｽﾄﾘｰﾑ名からﾛｸﾞを取得】
-
-aws logs get-log-events `
-  --log-group-name "/project/prod/ecs" `
-  --log-stream-name "front/front/a043c6fb7b20449eb6e17d6e8d39231e" `
-  --limit 50
-
-====================================
-【ｸﾗｽﾀ名からﾀｽｸIDを取得】
-
-aws ecs list-tasks `
-  --cluster project-prod_ecs_cluster_app
-
-------------------------------------
-
-【ｸﾗｽﾀIDからﾀｽｸの状態を取得】
-
-aws ecs describe-tasks `
-  --cluster project-prod_ecs_cluster_app `
-  --tasks a18617b4e24a4727ab4e9bcf9da3bc2f
-
-====================================
-
-【ECS Exec】
-
-aws ecs execute-command `
-  --cluster project-prod_ecs_cluster_app `
-  --task 81be28d8c5cf4f7f9f369b174ef3b928 `
-  --container app `
-  --interactive `
-  --command "/bin/sh"
-
-====================================
-
-■■■■■■■■■■■■■■■■■■
-■■■
 ■■■　ＣｏｄｅＣｏｎｎｅｃｔｉｏｎ
 ■■■
 ■■■■■■■■■■■■■■■■■■
@@ -956,15 +932,469 @@ aws iam get-role-policy `
 ====================================
 
 
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　CloudWatch Log
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【ﾛｸﾞｸﾞﾙｰﾌﾟからﾛｸﾞｽﾄﾘｰﾑ名を取得】
+
+aws logs describe-log-streams `
+  --log-group-name "/project/prod/ecs" `
+  --order-by "LastEventTime" `
+  --descending `
+  --limit 10 `
+  --query "logStreams[].logStreamName"
+
+------------------------------------
+【ﾛｸﾞｽﾄﾘｰﾑ名からﾛｸﾞを取得】
+
+aws logs get-log-events `
+  --log-group-name "/project/prod/ecs" `
+  --log-stream-name "front/front/a043c6fb7b20449eb6e17d6e8d39231e" `
+  --limit 50
+
+====================================
+【ｸﾗｽﾀ名からﾀｽｸIDを取得】
+
+aws ecs list-tasks `
+  --cluster project-prod_ecs_cluster_app
+
+------------------------------------
+
+【ｸﾗｽﾀIDからﾀｽｸの状態を取得】
+
+aws ecs describe-tasks `
+  --cluster project-prod_ecs_cluster_app `
+  --tasks a18617b4e24a4727ab4e9bcf9da3bc2f
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　コンテナ
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【ECS Exec】
+
+aws ecs execute-command `
+  --cluster project-prod_ecs_cluster_app `
+  --task 81be28d8c5cf4f7f9f369b174ef3b928 `
+  --container app `
+  --interactive `
+  --command "/bin/sh"
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　CloudFront
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【ｷｬｯｼｭｸﾘｱ】
+
+aws cloudfront create-invalidation \
+  --distribution-id E23O2AJ73IYW75 \
+  --paths '/*'
+
+====================================
+
+【HEADﾘｸｴｽﾄを送信】
+　ｱﾌﾟﾘｹｰｼｮﾝ層（PHP/WordPress）を通すために利用
+
+curl -I -v https://linux-service.net
+
+　-I：ﾍｯﾀﾞｰのみ取得
+　-v：通信詳細（TCP接続開始、送信ﾍｯﾀﾞｰ受信ﾍｯﾀﾞｰ）を標準ｴﾗｰ出力
+
+------------------------------------
+
+【ｷｬｯｼｭﾊﾞｲﾊﾟｽ GETﾘｸｴｽﾄ】
+　ｵﾘｼﾞﾝを通すために利用
+
+curl.exe `
+   -H "Cache-Control: no-cache" `
+   -H "Host: linux-service.net" `
+   ("https://linux-service.net/?_t=$((Get-Date -UFormat '%s'))")
+
+curl.exe `
+   -H "Cache-Control: no-cache" `
+   -H "Host: linux-service.net" `
+   ("https://alb.linux-service.net/?_t=$((Get-Date -UFormat '%s'))")
+
+　-H "Cache-Control: no-cache"：ｷｬｯｼｭ済ｺﾝﾃﾝﾂではなくｵﾘｼﾞﾝから最新を取得 
+　-H "Host: linux-service.net"：ﾍｯﾀﾞｰのHostを上書しALB のｶｽﾀﾑﾄﾞﾒｲﾝを直接たたける
+　?_t=<タイムスタンプ>        ：ｸｴﾘを毎回ユニークにすることでｷｬｯｼｭをﾊﾞｲﾊﾟｽ
+
+------------------------------------
+
+【ｷｬｯｼｭﾊﾞｲﾊﾟｽ GETﾘｸｴｽﾄ詳細ﾃﾞﾊﾞｯｸﾞ】
+
+curl.exe -v `
+  -H "Cache-Control: no-cache" `
+  -H "Host: linux-service.net" `
+   ("https://linux-service.net/?_t=$((Get-Date -UFormat '%s'))")
+
+curl.exe -v `
+   -H "Cache-Control: no-cache" `
+   -H "Host: linux-service.net" `
+   ("https://alb.linux-service.net/?_t=$((Get-Date -UFormat '%s'))")
+
+　-v                           :GETの全送受信（ﾍｯﾀﾞｰ・ﾎﾞﾃﾞｨ）を確認
+　-H "Cache-Control: no-cache"：ｷｬｯｼｭ済ｺﾝﾃﾝﾂではなくｵﾘｼﾞﾝから最新を取得 
+　-H "Host: linux-service.net"：ﾍｯﾀﾞｰのHostを上書しALB のｶｽﾀﾑﾄﾞﾒｲﾝを直接たたける
+　?_t=<タイムスタンプ>        ：ｸｴﾘを毎回ユニークにすることでｷｬｯｼｭをﾊﾞｲﾊﾟｽ
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　ユーザデータ
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【Cloud-Init ﾃﾞｰﾓﾝの動作ﾛｸﾞ】
+
+各ﾓｼﾞｭｰﾙ（init, config, final など）がいつ何をしたか
+
+sudo less /var/log/cloud-init.log
+
+------------------------------------
+
+【ﾕｰｻﾞﾃﾞｰﾀの動作ﾛｸﾞ】
+
+（#cloud-config／#!/bin/bash）の標準出力・ｴﾗｰ
+
+sudo less /var/log/cloud-init-output.log
+
+------------------------------------
+
+【ﾕｰｻﾞ作成ﾛｸﾞの推奨名】
+
+sudo less /var/log/user-data-debug.log
+
+====================================
+
+【ｷｬｯｼｭや実行済みﾌﾗｸﾞを削除】
+
+sudo cloud-init clean 
+
+------------------------------------
+
+【init ﾓｼﾞｭｰﾙを再実行】
+　ﾈｯﾄﾜｰｸ設定取得、ﾎｽﾄ名設定、ﾕｰｻﾞﾃﾞｰﾀのﾀﾞｳﾝﾛｰﾄﾞ
+
+sudo cloud-init init
+
+------------------------------------
+
+【configﾌｪｰｽﾞのﾓｼﾞｭｰﾙを再実行】
+　cloud-config設定、ﾊﾟｯｹｰｼﾞｲﾝｽﾄｰﾙ、ﾌｧｲﾙ書込、ﾕｰｻﾞ作成
+
+sudo cloud-init modules --mode=config
+
+------------------------------------
+
+【ﾕｰｻﾞﾃﾞｰﾀの実行】
+　/var/lib/cloud/instance/scripts/part-*/を実行
+
+sudo cloud-init modules --mode=final 
+
+------------------------------------
+
+【ﾕｰｻﾞ作成ﾛｸﾞの推奨名】
+　各ﾓｼﾞｭｰﾙ（init／config／final）の実行状態
+
+sudo cloud-init status --long
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　Lambda起動（ALB->S3->Lambda->CloudWatch Logs）
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【S3の通知設定の確認】
+
+aws s3api get-bucket-notification-configuration `
+  --bucket project-prod-alb-logs-abcfrgh
+
+------------------------------------
+
+【LambdaのInvokePermissionの確認】
+
+aws lambda get-policy `
+  --function-name project-prod-lambda-alb-logs
+
+------------------------------------
+
+【S3の手動ｱｯﾌﾟﾛｰﾄﾞ】
+
+"hello world" | Out-File -FilePath "$env:TEMP\test.log" -Encoding ascii
+
+$inputFile  = "$env:TEMP\test.log"
+$outputFile = "$env:TEMP\test.log.gz"
+$bytes = [System.IO.File]::ReadAllBytes($inputFile)
+$fs   = [System.IO.File]::OpenWrite($outputFile)
+$gzip = New-Object System.IO.Compression.GzipStream($fs, [System.IO.Compression.CompressionMode]::Compress)
+$gzip.Write($bytes, 0, $bytes.Length)
+$gzip.Close()
+$fs.Close()
+
+aws s3 cp $outputFile "s3://project-prod-alb-logs-abcfrgh/dummy.log.gz"
+
+------------------------------------
+
+【Lambdaの手動実行】
+
+@'
+{
+  "Records": [
+    {
+      "eventSource": "aws:s3",
+      "s3": {
+        "bucket": { "name": "project-prod-alb-logs-abcfrgh" },
+        "object": { "key": "dummy.log.gz" }
+      }
+    }
+  ]
+}
+'@ | Out-File -FilePath "$PWD\s3-test-event.json" -Encoding utf8
+
+aws lambda invoke `
+  --cli-binary-format raw-in-base64-out `
+  --function-name project-prod-lambda-alb-logs `
+  --payload file://./s3-test-event.json `
+  response.json
+
+Get-Content -Path "$PWD\response.json" | Out-String
+
+====================================
+
+■■■■■■■■■■■■■■■■■■
+■■■
+■■■　Lambda起動（Cloudfront->Kinesis Stream->Lambda->CloudWatch Logs）
+■■■
+■■■■■■■■■■■■■■■■■■
+
+====================================
+
+【CloudFrontのﾘｱﾙﾀｲﾑﾛｸﾞ設定の確認】
+
+aws cloudfront get-realtime-log-config `
+  --name project-prod-rtlog-config
+
+------------------------------------
+
+【CloudFront Distributionのﾃﾞﾌｫﾙﾄｷｬｯｼｭ動作で使用するﾘｱﾙﾀｲﾑﾛｸﾞ設定】
+
+aws cloudfront get-distribution `
+  --id E2GC2PJB4T0PY3 `
+  --query "Distribution.DistributionConfig.DefaultCacheBehavior.RealtimeLogConfigArn"
+
+------------------------------------
+
+【Kinesis Streamのｽﾄﾘｰﾑ状態の確認】
+
+aws kinesis describe-stream `
+  --stream-name project-prod-cloudfront-rtlog `
+  --query "StreamDescription.StreamStatus"
+
+------------------------------------
+
+【ｼｬｰﾄﾞのﾃﾞｰﾀの確認】
+
+$iterator = aws kinesis get-shard-iterator `
+  --stream-name project-prod-cloudfront-rtlog `
+  --shard-id shardId-000000000000 `
+  --shard-iterator-type TRIM_HORIZON `
+  --query "ShardIterator" `
+  --output text
+
+$records = aws kinesis get-records `
+  --shard-iterator $iterator `
+  --limit 100 `
+  --output json | ConvertFrom-Json
 
 
+foreach ($rec in $records.Records) {
+    $b64 = $rec.Data
+    $bytes = [Convert]::FromBase64String($b64)
+    $text  = [System.Text.Encoding]::UTF8.GetString($bytes)
+    Write-Output "PartitionKey: $($rec.PartitionKey)"
+    Write-Output "Timestamp  : $($rec.ApproximateArrivalTimestamp)"
+    Write-Output "Data       : $text"
+    Write-Output "--------------------------------"
+}
+
+------------------------------------
+
+【Kinesis Streamからの読取権限の確認】
+
+aws iam get-role-policy `
+  --role-name project-prod-lambda-role `
+  --policy-name project-prod-lambda-kinesis-read
+
+------------------------------------
+
+【CloudWatch Logsへの書込権限の確認】
+
+aws iam get-role-policy `
+  --role-name project-prod-lambda-role `
+  --policy-name project-prod-cloudfront-log-write-policy
+
+------------------------------------
+
+【ﾃｽﾄ用ｲﾍﾞﾝﾄJSONを作成】
 
 
+$fields = @(
+  "1748395243.113",        # timestamp
+  "133.32.165.0",          # c-ip
+  "0.072",                 # time-to-first-byte
+  "302",                   # sc-status
+  "405",                   # sc-bytes
+  "GET",                   # cs-method
+  "https",                 # cs-protocol
+  "linux-service.net",     # cs-host
+  "/",                     # cs-uri-stem
+  "NRT57-P2",              # x-edge-location
+  "sample-request-id",     # x-edge-request-id
+  "-",                     # cs-uri-query
+  "Miss",                  # x-edge-response-result-type
+  "Miss"                   # x-edge-detailed-result-type
+)
+
+$line = $fields -join "`t"
+$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($line))
+
+@"
+{
+  "Records": [
+    {
+      "kinesis": {
+        "data": "$b64"
+      },
+      "eventSource": "aws:kinesis",
+      "eventSourceARN": "arn:aws:kinesis:ap-northeast-1:672207842210:stream/project-prod-cloudfront-rtlog"
+    }
+  ]
+}
+"@ | Out-File -FilePath .\test-event.json -Encoding UTF8
+
+------------------------------------
+
+【Lambdaを手動実行】
+
+aws lambda list-functions `
+  --query 'Functions[].FunctionName' `
+  --output text
 
 
+aws lambda invoke `
+  --cli-binary-format raw-in-base64-out `
+  --function-name project-prod-cloudfront_to_cloudwatch_log `
+  --payload file://./test-event.json `
+  ./result.json
+
+------------------------------------
+
+【Kinesisでﾃﾞｰﾀ投入】
+
+'{"message":"auto-test"}' | Out-File -FilePath .\payload.json -NoNewline -Encoding UTF8
+$bytes = [System.Text.Encoding]::UTF8.GetBytes((Get-Content .\payload.json))
+$b64   = [Convert]::ToBase64String($bytes)
+
+aws kinesis put-record `
+  --stream-name project-prod-cloudfront-rtlog `
+  --partition-key testkey `
+  --data $b64
 
 
+------------------------------------
+
+【Kinesisのデータ確認】
+
+$streamName = 'project-prod-cloudfront-rtlog'
+$shardId = aws kinesis describe-stream `
+  --stream-name $streamName `
+  --query "StreamDescription.Shards[0].ShardId" `
+  --output text
+
+$iterator = aws kinesis get-shard-iterator `
+  --stream-name $streamName `
+  --shard-id $shardId `
+  --shard-iterator-type TRIM_HORIZON `
+  --query "ShardIterator" `
+  --output text
 
 
+$raw = aws kinesis get-records `
+  --shard-iterator $iterator `
+  --limit 5
 
+$raw | Write-Output
 
+$records = ($raw | ConvertFrom-Json).Records
+
+Write-Output "Found $($records.Count) records."
+
+foreach ($rec in $records) {
+  $rawText = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($rec.Data))
+  Write-Output $rawText
+}
+
+foreach ($rec in $records) {
+  $rawText = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($rec.Data)).Trim()
+  # タブで分割
+  $values = $rawText -split "`t"
+
+  Write-Output "---- Record ----"
+  for ($i = 0; $i -lt $values.Length; $i++) {
+    # インデックスと値を表示
+    Write-Output ("[{0}] {1}" -f $i, $values[$i])
+  }
+  Write-Output ""
+}
+
+$fieldNames = @(
+  "timestamp",
+  "c-ip",
+  "time-to-first-byte",
+  "sc-status",
+  "sc-bytes",
+  "cs-method",
+  "cs-protocol",
+  "cs-host",
+  "cs-uri-stem",
+  "x-edge-location",
+  "x-edge-request-id",
+  "cs-uri-query",
+  "x-edge-response-result-type",
+  "x-edge-detailed-result-type"
+)
+
+foreach ($rec in $records) {
+  $rawText = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($rec.Data))
+  $values = $rawText -split "`t"
+  for ($i = 0; $i -lt $fieldNames.Count; $i++) {
+    Write-Output ("{0}: {1}" -f $fieldNames[$i], ($values[$i] -replace '"',''))
+  }
+  Write-Output "----------------------------------------"
+}
+
+------------------------------------

@@ -156,8 +156,10 @@ ipconfig /flushdns
   aws_route53_record                          Route53のﾚｺｰﾄﾞ定義
   aws_route53_health_check                    ﾍﾙｽﾁｪｯｸ
   ..................................................................
-  aws_cloudfront_cache_policy                 CloudFrontのｷｬｯｼｭﾎﾟﾘｼｰ
   aws_cloudfront_distribution                 CloudFront
+  aws_cloudfront_cache_policy                 CloudFrontのｷｬｯｼｭﾎﾟﾘｼｰ
+  aws_cloudfront_origin_request_policy        CloudFrontのﾘｸｴｽﾄﾎﾟﾘｼｰ
+  aws_cloudfront_realtime_log_config          CloudFrontのﾘｱﾙﾀｲﾑﾛｸﾞ
   ..................................................................
   aws_lb                                      ALB
   aws_lb_target_group                         ALBのﾀｰｹﾞｯﾄｸﾞﾙｰﾌﾟ
@@ -166,25 +168,13 @@ ipconfig /flushdns
   ..................................................................
   aws_launch_template                         Auto Scaling用のEC2ﾃﾝﾌﾟﾚｰﾄ
   aws_autoscaling_group                       Auto Scalingｸﾞﾙｰﾌﾟ
+  aws_autoscaling_policy                      Scallingﾎﾟﾘｼｰ
   ..................................................................
   aws_instance                                EC2ｲﾝｽﾀﾝｽ
   ..................................................................
-  aws_ecs_cluster                             ECSｸﾗｽﾀ
-  aws_ecs_task_definition                     ECSﾀｽｸ定義
-  aws_ecs_service                             ECSｻｰﾋﾞｽ
-    network_configuration                       ﾈｯﾄﾜｰｸ、ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
-    dynamic "load_balancer"                     ﾛｰﾄﾞﾊﾞﾗﾝｻ
-    dynamic "service_registries"                Cloud Map
-  aws_service_discovery_private_dns_namespace ﾌﾟﾗｲﾍﾞｰﾄDNS名前空間
-  aws_service_discovery_service               ｻｰﾋﾞｽ名（DNSｴﾝﾄﾘ名）
-  ..................................................................
-  aws_s3_bucket                               S3ﾊﾞｹｯﾄ
-  aws_s3_bucket_website_configuration         S3の静的ｳｪﾌﾞｻｲﾄﾎｽﾃｨﾝｸﾞ
-  aws_s3_bucket_public_access_block           ﾊﾟﾌﾞﾘｯｸｱｸｾｽﾌﾞﾛｯｸ
-  aws_s3_bucket_policy                        S3ﾊﾞｹｯﾄﾎﾟﾘｼｰ
-  ..................................................................
-  aws_db_subnet_group                         RDS ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟ
   aws_db_instance                             RDS
+  aws_db_subnet_group                         RDS ｻﾌﾞﾈｯﾄｸﾞﾙｰﾌﾟ
+  aws_db_parameter_group                      RDS ﾊﾟﾗﾒｰﾀｸﾞﾙｰﾌﾟ
   ..................................................................
   aws_elasticache_subnet_group                ｻﾌﾞﾈｯﾄ（ﾌﾟﾗｲﾍﾞｰﾄｻﾌﾞﾈｯﾄ）
   aws_elasticache_parameter_group             ﾊﾟﾗﾒｰﾀ
@@ -201,17 +191,38 @@ ipconfig /flushdns
   aws_acm_certificate                         ACM
   aws_acm_certificate_validation              ACMのDNS検証を待機
   ..................................................................
+  aws_ecs_cluster                             ECSｸﾗｽﾀ
+  aws_ecs_task_definition                     ECSﾀｽｸ定義
+  aws_ecs_service                             ECSｻｰﾋﾞｽ
+      network_configuration                     ﾈｯﾄﾜｰｸ、ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
+      dynamic "load_balancer                    ﾛｰﾄﾞﾊﾞﾗﾝｻ
+      dynamic "service_registries               Cloud Map
+  aws_service_discovery_private_dns_namespace ﾌﾟﾗｲﾍﾞｰﾄDNS名前空間
+  aws_service_discovery_service               ｻｰﾋﾞｽ名（DNSｴﾝﾄﾘ名）
+  ..................................................................
+  aws_s3_bucket                               S3ﾊﾞｹｯﾄ
+  aws_s3_bucket_server_side                   S3の暗号化
+     _encryption_configuration
+  aws_s3_bucket_website_configuration         S3の静的ｳｪﾌﾞｻｲﾄﾎｽﾃｨﾝｸﾞ
+  aws_s3_bucket_public_access_block           ﾊﾟﾌﾞﾘｯｸｱｸｾｽﾌﾞﾛｯｸ
+  aws_s3_bucket_policy                        S3ﾊﾞｹｯﾄﾎﾟﾘｼｰ
+  aws_s3_bucket_lifecycle_configuration       S3のﾗｲﾌｻｲｸﾙ
+  aws_s3_bucket_notification                  S3の通知設定
+  ..................................................................
   aws_lambda_function                         Lambda 関数
+  aws_lambda_permission                       Lambda 呼出権限
+  aws_lambda_event_source_mapping             Lambda 呼出設定
   ..................................................................
   aws_dynamodb_table                          DynamoDBﾃｰﾌﾞﾙ
   ..................................................................
   aws_sqs_queue                               SQS
   aws_sns_topic                               SNS
   ..................................................................
+  aws_kinesis_stream                          Kinesis Stream
+  ..................................................................
   aws_cloudwatch_log_group                    CloudWatchﾛｸﾞｸﾞﾙｰﾌﾟ
   aws_cloudwatch_metric_alarm                 CloudWatchﾒﾄﾘｸｽｱﾗｰﾑ
   ------------------------------------------------------------------
-  ※）ｸﾗｲｱﾝﾄ > ALB > Target-Group > Auto Scaling Group
 
 ------------------------------------
 【HCLのﾃﾞｰﾀ型】
@@ -351,7 +362,6 @@ locals {
 
 ------------------------------------
 【HCLのfor_each（set / map を扱う）】
-
 
 【例】
 

@@ -37,5 +37,18 @@ DELETE FROM testdb.test_table
 
 SELECT * FROM testdb.test_table;
 
+===============================================================
+
+/aws/rds/instance/project-prod-db-instance/slowquery
+
+ssh web1
+
+mysql \
+  --host      project-prod-db-instance.c5m68ikgukmk.ap-northeast-1.rds.amazonaws.com \
+  --port      3306 \
+  --user      wordpress \
+  --password=******** \
+  --database  wordpress \
+  --execute   "SELECT SLEEP(2);"
 
 ===============================================================
