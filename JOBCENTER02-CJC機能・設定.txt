@@ -1,0 +1,106 @@
+■WebSAM　jobCenter CJC optionの機能と設定ファイルと主要設定項目
+
+■■■　WebSAM　jobCenter CJC option（Cluster Job Control Option）
+
+■役割
+　JobCenter MG／SV をｸﾗｽﾀ環境でﾌｪｰﾙｵｰﾊﾞｰ出来るようにするﾗｲｾﾝｽ
+　ｼﾞｮﾌﾞﾈｯﾄDB（ｻｲﾄ）を共有ディスクに置き、待機系へ自動引き継ぎを行う
+
+■形態
+　ﾗｲｾﾝｽのみの製品で 追加ソフトのインストールは不要
+　ライセンス適用後、クラスタサイトを定義すると機能が有効になる
+
+■構成要素
+
+　サイト DB（共有ディスク）
+　　cjcmksite コマンドで作成
+　　MG／SV が共有ﾌｧｲﾙｼｽﾃﾑ(EBSﾏﾙﾁｱﾀｯﾁ、EFSなど)越しに参照
+
+　クラスタ切替えコマンド
+　　cjcpw start|stop … フェイルオーバ時に CLUSTERPRO 等から呼び出す
+
+　systemd ユニット（MG/SV インストール時に生成）
+　　/usr/lib/systemd/system/jobcentersv.service など
+
+■設定ファイル
+
+　/usr/lib/nqs/rc/daemon.conf
+　　ローカル & クラスタ共通デーモン設定
+　　“ローカル”と “クラスタサイト”を同居させる場合に使用
+　　local_daemon, listen_port
+
+　/usr/spool/nqs/daemon.conf
+　　ローカルサイト専用デーモン設定
+　　同名パラメータがある場合こちらが優先
+　　local_daemon, ipaddress
+
+　<SITE_DB>/nqs/daemon.conf
+　　クラスタサイト専用デーモン設定
+　　cjcmksite で生成した共有ディスク配下
+　　ipaddress, ipcheck
+
+　ライセンスキー
+　　/usr/lib/nqs/license/jobcenter_key.dat
+　　CJC Option を含むキーを登録
+
+■クラスタサイト用 daemon.conf 例
+
+local_daemon=OFF               # ローカルデーモンは停止
+ipaddress=10.0.2.50            # VIP／仮想ホスト名に対応するIP
+listen_port=20816              # MG/SV ↔ SV 間通信ポート
+ipcheck=OFF                    # SV 逆引きチェック抑制（必要に応じ）
+
+■ローカル側 daemon.conf 例
+
+local_daemon=SITE              # ローカル＆クラスタの同居を許可
+ipaddress=10.0.0.10            # 管理ネットワークIP
+
+local_daemon
+　ローカルデーモン動作モード
+　SITE (同居) or OFF (停止)
+
+ipaddress
+　デーモンが待受ける IP（最大5個, カンマ区切り）
+　クラスタサイトでは VIP を指定
+
+listen_port
+　JobCenter 独自プロトコルポート
+　既定 20816, 変更可
+
+ipcheck
+　SV 逆引きチェック無効化
+　クラスタ VIP で名前解決が難しい場合は OFF
+
+■クラスタ化手順（概要）
+
+１．MG/SV を両ノードへ通常インストール（バージョンは完全一致）。
+
+２．CJC Option ライセンスを登録 (jclicreg).
+
+３．共有ディスク上にサイト DB 作成
+　cjcmksite -d /share/job_site -n jobsiteA
+
+４．クラスタサービス（例：CLUSTERPRO, Pacemaker）に
+　　共有ディスクマウント
+　　VIP/ENI 移管
+　　cjcpw start/stop を資源スクリプトとして登録。
+
+５．各 daemon.conf を編集（上表）→ systemctl restart jobcentersv.
+
+６．動作確認 (cjcpw status, ジョブ投入 → フェイルオーバ → 正常継続)
+
+■運用の要点
+
+　MG⇄SV ポート 20816/TCP を双方向開放（AWS SG）
+　NQS_SITE 環境変数をコマンド実行直前だけ設定し、誤動作を防止。
+　バージョン／ライセンスは全ノード同一に保つ。
+　バックアップは サイト DB とスプールをスナップショットで一括取得
+
+※）CJC Option を適切にライセンス登録し、
+　　上記の daemon.conf とサイト DB を正しく作成すれば、
+　　JobCenter MG/SV のフェイルオーバを安全に実装できます。
+
+
+
+
+

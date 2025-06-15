@@ -1,0 +1,141 @@
+■ｵﾝﾌﾟﾚ環境のRHEL6環境をAWS EC2上のRHEL9に移行したい
+　ｵﾝﾌﾟﾚ環境で導入されているPPは以下の通りです
+　注意点を教えてください
+
+　CLUSTERPRO MC ProcessServer for Linux
+　CLUSTERPROX for Linux　
+　WebSAM　BASE Center（AG）
+　OpenDiosa/OPBASE Agent
+　OpenDiosa/OPBASE Extention Agent
+　OpenDiosa/OPBASE Performance Agent
+　OpenDiosa/OPBASE Operations Agent
+　OpenDiosa/OPBASE HA Option Agent
+　WebSAM　jobCenter SV for Linux
+　WebSAM　jobCenter CJC option
+　Open JDK
+　Deep Security Agent
+　FENCE-SVP-D（Ｃ言語版）
+　FENCE-SVP-D（JAVA版）
+
+------------------------------------------
+■RHEL 6 → RHEL 9 (EC2) 移行時の注意点
+------------------------------------------
+■■■　クラスタ／HA 関連
+
+■CLUSTERPRO X for Linux (旧CLUSTERPROX)
+
+・RHEL 9 対応版 (X 5.2 以降) へアップグレード必須
+
+・Nitro/HVM インスタンス想定（ENA・NVMe ドライバ）
+
+・マルチキャスト不可 → unicast 設定に変更
+
+・フェンス：fence_aws／ENI detach 等を使用
+
+■CLUSTERPRO MC ProcessServer
+
+・RHEL 6 の init 監視テンプレートは流用不可
+
+・RHEL 9 用 systemd サンプルスクリプトに置換
+
+------------------------------------------
+■■■　運用監視・ジョブ管理
+
+■WebSAM BASE Center（AG）
+
+・RHEL 9 対応版に更新
+
+・SELinux Enforcing で動作させる場合は専用 policy を適用
+
+■WebSAM JobCenter SV／CJC option
+
+・RHEL 9 (R15.x 以降) を公式サポート
+
+・After=network-online.target を要求 → NetworkManager-wait-online を有効化
+
+・Shift-JIS ロケールが必要なら localedef で自前生成
+
+■OpenDiosa / OPBASE 各 Agent
+
+・RHEL 9 動作はベンダー要確認（最新版へ更新）
+
+・旧 libstdc++ ABI 依存が残る版は動作不可の恐れ
+
+------------------------------------------
+■■■　セキュリティ／エージェント
+
+■Deep Security Agent
+
+・20 LTS 8137 以降で RHEL 9 対応
+
+・カーネル拡張ガード有効時は dsa_kernel_extension=disabled
+
+・SPN または VPC エンドポイントで更新用通信を確保
+
+■FENCE-SVP-D（C／Java 版）
+
+・EC2 にはSVPが存在しないため利用不可
+
+・代替：fence_aws や Route 53＋Multi-AZ 構成
+
+------------------------------------------
+■■■　ミドルウェア共通注意点
+
+■OpenJDK : 標準は JDK 21／11／17 LTS
+
+・Java 6/7 バイトコードは再ビルドか互換設定を追加
+
+■サービス起動方式 : chkconfig → systemctl enable
+
+・旧 init.d スクリプトは Type=forking ユニットで登録
+
+■ファイアウォール : iptables ルールを nftables/firewalld へ変換
+
+■クラスタ向けフェンス : IPMI→fence_aws／ElectricFence（CPRO 5.3 以降）
+
+■時刻同期 : Chrony で 169.254.169.123 (AWS Time Sync) を prefer 指定
+
+------------------------------------------
+■■■　移行ステップ（ベストプラクティス）
+
+■事前検証
+
+・各 PP の最新版を RHEL 9.4 + Nitro で単体テスト
+
+・SELinux Permissive → Enforcing で動作確認
+
+■AMI ビルド
+
+・Marketplace「RHEL 9 with HA」AMI + Packer で Golden AMI 作成
+
+・Deep Security Agent／CLUSTERPRO モジュールを事前導入
+
+■データ移行
+
+・aws snowball／DataSync／rsync などで同期
+
+・DB は論理エクスポート → 新バージョンへリストア
+
+■切り替え
+
+・CLUSTERPRO PreSwitch で ELB ヘルスチェック制御
+
+・Route 53 フェイルオーバー DNS と併用で短縮
+
+■運用引継ぎ
+
+・Patch Manager＋Satellite でパッチチャネル分離
+
+・journald と Deep Security イベントを CloudWatch Logs に統合
+
+------------------------------------------
+■■■　まとめ
+
+■すべての製品を RHEL 9 対応版へアップグレード
+
+■AWS 固有ハード要件の欠如を考慮し、フェンス／共有ストレージ設計をクラウド向けに刷新
+
+■SELinux・systemd・nftables など RHEL 6→9 の基盤差分を早期に吸収し、検証→手順化→本番移行の3段階で実施
+
+------------------------------------------
+

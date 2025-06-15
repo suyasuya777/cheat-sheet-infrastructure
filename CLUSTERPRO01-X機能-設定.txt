@@ -1,0 +1,92 @@
+■CLUSTERPROX for Linuxの機能と設定ファイルと主要設定項目
+
+■■■　CLUSTERPRO X for Linux（旧 CLUSTERPROX）
+
+■機能
+
+　・アクティブ-スタンバイ型フェイルオーバクラスタ
+　・ネットワーク／ディスク二重化・監視（ハートビート、I/O フェンス）
+　・共有 IP（VIP）やアプリケーションサービスの自動移行
+　・STONITH（電源／クラウド API）によるスプリットブレイン防止
+　・フェイルバック／優先度切替え、メンテナンスモード、統計レポート
+
+■ディレクトリ構成（デフォルト例）
+
+　/opt/nec/clpx/bin/        … 管理コマンド（clpstat, clpstart）
+　/etc/opt/nec/clpx/conf/   … クラスタ定義ファイル
+　/var/opt/nec/clpx/log/    … 製品ログ
+
+　/usr/lib/systemd/system/clpx.service … systemd ユニット
+
+■設定ファイル
+
+　clp.conf         … クラスタ全体の定義（ノード／心拍線／リソース）
+　clp_stonith.conf … STONITH デバイス（IPMI、fence_aws など）
+　clp_event.conf   … イベントと通知・アクションのマッピング
+　clp_log.conf     … ログレベル・ローテーション
+　clp_env          … LANG・TMPDIR 等の環境変数
+
+■clp.conf
+
+[Cluster]
+CLUSTERNAME=<clp-demo>             … 識別名
+HB_TIMEOUT=15                      … 心拍ロストと判定する秒数
+FAILBACK=MANUAL|AUTO               … 自動復帰可否
+
+[Node]
+NODEID=1                           … 整数 ID
+HOSTNAME=node1.example.local
+ROLE=ACTIVE|STANDBY|SPARE
+
+[HeartbeatLine]
+DEVICE=eth0                        … ハートビート用 IF
+MODE=UNICAST|MULTICAST             … VPC では UNICAST 推奨
+INTERVAL=2                         … 送信間隔（秒）
+RETRY=3                            … 欠損許容回数
+
+[QuorumDisk]（共有ディスク／PGR 環境の場合のみ）
+DEVICE=/dev/nvme1n1
+TYPE=PGR                           … SCSI-3 PR 方式
+
+[ResourceGroup]
+GROUPNAME=AppRG
+PRIORITY=10
+AUTOSTART=YES
+
+[Resource]（グループ内で複数定義可）
+RESNAME=vip01                      … 論理 IP リソース
+TYPE=IP                            … IP / SCRIPT / FILESYS など
+IPADDR=10.0.0.100
+NETMASK=255.255.255.0
+MONINTERVAL=10                     … 監視周期（秒）
+ACTION=/opt/scripts/check_httpd.sh … 監視失敗時の実行
+
+■主要設定項目（clp_stonith.conf の代表例）
+
+STONITH_TYPE=fence_aws
+
+REGION=ap-northeast-1
+
+PROFILE=clpStonithRole …… IAM ロール / プロファイル名
+
+POWER_TIMEOUT=60 …… インスタンス停止完了待ち時間
+
+■運用時のチェックポイント
+
+Heartbeat IF は 異なる AZ 上の ENI を 2 系統以上確保
+
+STONITH が失敗した際の「非同期電源断」対策として、EBS マルチアタッチ時は SCSI-3 PGR か quorum device を併用
+
+systemd 連係：After=network-online.target / Restart=on-failure を clpx.service に追加
+
+CLUSTERPRO コマンド例
+
+clpstat -s …… クラスタ／リソース状態確認
+
+clpgrp switch AppRG node2 …… 手動フェイルオーバ
+
+clpnode standby node1 …… スタンバイ投入
+
+（注）設定ファイルの正確なパス・名称は導入バージョンやインストール先変更オプションによって異なる場合があります。実際の値は CLUSTERPRO X Configuration Guide および clpconf --dump の出力をもとに確認してください。
+
+

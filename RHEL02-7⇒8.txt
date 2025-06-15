@@ -1,0 +1,105 @@
+■RHEL7からRHEL8へｱｯﾌﾟﾃﾞｰﾄする場合、見直しが必要な変更点
+
+１．パッケージ管理・リポジトリ
+
+　・yum → DNF
+　　RHEL 8 では DNF（libdnf）を標準採用。パフォーマンス向上やトランザクション検証機能強化。
+　　従来の yum コマンドはラッパーとして残存するが、dnf コマンドへの移行を推奨。
+　　AppStream（モジュール式リポジトリ）
+　　BaseOS リポジトリ＋アプリケーション用 AppStream モジュール。
+　　各モジュール（例：nodejs:12／nodejs:14）からストリームを選択してインストール。
+　　カスタムモジュールの作成や profile 指定にも慣れておく。
+
+２．カーネル・コアコンポーネント
+
+　・カーネルバージョン
+　　RHEL 7 の 3.10 系から、RHEL 8 は 4.18 系にアップ。ハードウェア対応やドライバが変化。
+　　/usr と /usr/lib のマージ
+　　/usr/bin のコマンドが /bin からすべてシンボリックリンクに。
+　　スクリプトやビルド時パスを確認。
+
+3. ファイルシステム・ストレージ
+
+　・XFS が標準継続
+　　オンラインリサイズ機能はそのまま利用可。
+　　Stratis／VDO
+　　ソフトウェア定義ストレージとして Stratis（RAID-LVM 相当）や VDO（重複排除・圧縮）をサポート。
+
+　　既存 LVM 設計に組み込む場合はテスト必須。
+
+４．言語ランタイム・ライブラリ
+
+　・Python 3 が標準
+　　RHEL 8 の /usr/bin/python は Python 3.6。Python 2.7 は互換モジュール (python2 パッケージ) で別途提供。
+　　スクリプト互換性の確認と shebang 修正（#!/usr/bin/python3）。
+
+　・GCC／glibc の更新
+　　GCC 4.8 → 8.2、glibc 2.17 → 2.28。
+　　ネイティブビルドしたバイナリの再ビルド検討。
+
+５．ネットワーク設定
+
+　・NetworkManager の強化
+　　nmcli／nmtui が推奨。従来 ifcfg- スクリプトも使えるが、廃止予定。
+
+　・iproute2／nftables
+　　iptables → nftables（兼 iptables-nft 表示モード）。
+　　ルール定義が大幅に変わるため、firewalld の zone 設定見直し。
+
+６．セキュリティ・認証
+
+　・強化された暗号ポリシー
+　　デフォルトで TLS 1.2+、SHA-2 ベースの暗号スイートを要求。アプリ側の古いライブラリ対応要確認。
+　　SCAP／OpenSCAP の標準化
+　　ベースライン評価ツールとして OpenSCAP が標準装備。
+　　自動コンプライアンスチェックの仕組みを導入可能。
+　　SSSD／IdM
+　　IdM（IPA）クライアント機能強化。SSSD 設定ファイルの変更点を確認。
+
+７．コンテナ／仮想化
+
+　・Docker → podman／buildah／skopeo
+　　非デーモン型 OCI ツールチェーンへ移行。既存 Dockerfile・スクリプトを podman コマンドに置き換え。
+　　CRI-O サポート
+　　Kubernetes 環境向けの軽量コンテナランタイム。
+　　コアOSイメージ
+　　RHEL CoreOS（Immutable）利用時は別途インストール方法を検討。
+
+８．ログ・監視
+
+　・journald ログが継続
+　　バイナリ形式のまま。journalctl --forward などで運用。
+
+　・Cockpit の標準搭載
+　　ブラウザベースのシステム管理 UI。必要に応じて自動起動／認証設定を行う。
+
+９．仮想化（KVM/QEMU/Libvirt）
+
+　・Libvirt XML スキーマ更新
+　　<features> 要素や <cpu> モデル指定などに細かな変更あり。既存定義をバリデート。
+　　Virt-io ドライバ強化
+
+　・パフォーマンス最適化パラメータが増加
+
+１０．その他ポイント
+
+　・EFI/UEFI ブートの完全対応
+　　BIOS レガシーブートは非推奨。UEFI システムでの再構築計画を。
+
+　・sendmail は提供終了
+　　MTA は必ず Postfix／Exim などで代替。
+　　iSCSI／FCoE クライアント更新
+
+　　マルチパスやイニシエータ設定のオプション変更を確認。
+
+　・GUI デスクトップ環境
+　　GNOME 3.28（Wayland デフォルト）など、X11→Wayland への移行影響。
+
+　・アップグレード手順のポイント
+　　テスト環境でのフルリハーサル
+
+　・フルバックアップとスナップショット取得
+　・RHEL 8 Release Notes／Migration Guide 熟読
+　・leapp ツールを使った移行可否検証
+　・Post-upgrade チェックリスト作成（サービス起動確認、ログ・監視設定、パフォーマンステスト など）
+

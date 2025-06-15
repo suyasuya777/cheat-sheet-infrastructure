@@ -1,0 +1,97 @@
+■RHEL6からRHEL7へｱｯﾌﾟﾃﾞｰﾄする場合、見直しが必要な変更点
+
+１．起動およびサービス管理
+
+　・init → systemd
+　　systemctl enable/disable/start/status を使う運用へ変更
+
+　・ログ管理
+　　/var/log/messages に加え、journald がデフォルト
+　　過去ログはバイナリ形式で保存されるため、
+　　参照は journalctl コマンドを利用
+
+２．ネットワーク設定
+
+　・Predictable Network Interface Names
+　　eth0 → ens33 など、ハードウェア固有の命名規則に変更。
+　　従来スクリプト（/etc/sysconfig/network-scripts/ifcfg-eth0 等）を
+　　そのまま流用するとインターフェース名が合わないことがあるので要確認
+
+　・NetworkManager のデフォルト化
+　　従来の network サービスではなく、NetworkManager が標準で有効化
+　　静的IPだけ使うサーバ用途でも、NM_CONTROLLED=no の設定確認や、
+　　必要に応じて NetworkManager を無効化する運用を検討
+
+３．ファイアウォール
+
+　・iptables スクリプト → firewalld
+　　iptables-save/restore スクリプトから、
+　　ゾーン／サービス管理の firewall-cmd へ
+　　永続設定は --permanent オプションで行い、reload で反映
+　　従来の iptables ルールを自動移行するツールもありますが、
+　　ゾーン構成を見直すのが望ましい。
+
+４．ファイルシステム・ストレージ
+
+　・XFS がデフォルト
+　　RHEL 7 インストーラではルートパーティションが XFS に
+　　オンラインリサイズに対応しますが、
+　　オフラインでのダウングレードは不可
+
+　・LVM 関連
+　　LVM のメタデータバージョンが上がっているため、旧環境の LV/VG を移行後に vgupgrade が必要。
+
+５．言語ランタイム・ライブラリ
+　　Python 2.6 → 2.7
+　　/usr/bin/python のバージョンが 2.7.5 へ。
+　　独自スクリプトで非互換な振る舞いがないか要テスト。
+　　GCC/glibc のメジャーバージョンアップ
+　　glibc 2.12 → 2.17、GCC 4.4 → 4.8。
+　　バイナリ互換性は保たれますが、独自ビルドしたモジュールは再ビルド推奨。
+
+６．パッケージ管理・リポジトリ
+　　yum プラグインやリポジトリ URL
+　　/etc/yum.repos.d/redhat.repo の形式が変化。
+　　カスタムリポジトリは RHEL 7 用に URL やメタデータを更新。
+　　Software Collections (SCL)
+　　複数バージョンの言語環境を並存可能にする SCL の利用検討
+
+７．セキュリティ・認証
+
+　・SELinux ポリシー強化
+　　デフォルトで「targeted」ポリシー継続だが、一部 booleans に変更あり。
+　　コンテキスト異常が出るアプリは restorecon やカスタムポリシーで対処。
+
+　・NTP → Chrony
+　　ntpd から高精度・高速同期の chronyd へ移行
+　　/etc/chrony.conf の設定を作成・調整
+
+８．仮想化・コンテナ
+　・qemu-kvm/libvirt のバージョン上昇
+　　XML スキーマに微修正あり
+
+　・仮想ディスクのフォーマットやオプション互換性を検証
+　　Docker サポート
+　　RHEL7 では公式リポジトリから docker パッケージが提供
+　　SELinux ラベルや cgroup 設定に注意
+
+9. その他注意点
+
+　・32bit バイナリサポートの縮小
+　　i386 アーキテクチャや互換パッケージが削減。
+　　必要な場合は yum install glibc.i686 等で個別導入
+
+　・sendmail → postfix
+　　メール転送エージェントのデフォルトが Postfix に
+　　設定ファイル (/etc/postfix/main.cf など) を準備
+
+　・容量・パーティション構成の見直し
+　　/var、/tmp、/home 等の推奨マウントポイントを再検討
+　　LVM スナップショット運用なども併せて計画
+
+　・アップグレード手順のポイント
+　　テスト環境での検証
+　　フルバックアップ取得
+　　インストールガイド（RHEL7 Release Notes）熟読
+　　移行ツール（redhat-upgrade-tool）の利用可否検討
+　　Post-migration チェックリスト作成

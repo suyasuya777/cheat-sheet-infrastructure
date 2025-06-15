@@ -1,0 +1,117 @@
+■WebSAM　jobCenter SV for Linuxの機能と設定ファイルと主要設定項目
+
+　MG (Manager)
+　　管理系サーバ（運用者がアクセスしやすい）
+　　ジョブネット定義DB、スケジューラ、監視UI/API、ライセンスカウント
+
+　SV (Server)
+　　実行系サーバ（CPU・I/O リソースが豊富）
+　　キューイング／ジョブ実行制御、リカバリ制御、AG への配信
+
+　AG (Agent)
+　　対象サーバ（アプリ実行ノード）
+　　コマンド実行・終了コード返却
+
+■機能
+
+　・ジョブスケジューリング
+　　ｼﾞｮﾌﾞﾈｯﾄ・ｶﾚﾝﾀﾞｰ・例外日設定、優先度制御、並列実行枠（ｽﾛｯﾄ）制御
+
+　・ジョブ実行制御サーバ (SV)
+　　ﾈｯﾄﾜｰｸｷｭｰｲﾝｸﾞｼｽﾃむ（NQS）でｼﾞｮﾌﾞをｷｭｰ/ｽﾌﾟｰﾙし各AGに実行要求を配送
+　　再実行・強制終了・依存関係解決、実行ログ収集
+
+　・分散サイト／クラスタ機能
+　　ｻｲﾄ概念でﾛｰｶﾙ/ｸﾗｽﾀDBを分離、フェイルオーバ先でもジョブを継続
+　　専用コマンド cjcpw によるクラスタサイト起動・停止
+
+　・監視・連携
+　　REST-Like API／コマンド（qmgr / jnwengine 他）
+　　Web クライアント、Excel Helper、CL/Win、CL/Web など GUI 群
+
+■ディレクトリ構成
+
+　/usr/lib/nqs/rc/         ← 共通設定ファイル (daemon.conf, envvars 他)
+　/usr/spool/nqs/          ← ローカルサイト用スプールエリア
+　<SiteDB>/nqs/            ← クラスタサイト用 daemon.conf 等
+　/usr/lib/nqs/cluster/    ← cjcpw・サイト関連コマンド
+　/usr/lib/nqs/gui/bin/    ← jnwengine など UI サーバ
+　/usr/lib/systemd/system/ ← jobcentersv.service（自動生成）
+
+■設定ファイル
+
+　/usr/lib/nqs/rc/daemon.conf （共通デーモン設定）
+　/usr/spool/nqs/daemon.conf / <SiteDB>/nqs/daemon.conf（サイト個別）
+　/usr/lib/nqs/rc/envvars （ジョブ実行用環境変数）
+　systemd ユニット jobcentersv.service
+
+■/usr/lib/nqs/rc/daemon.conf
+■/usr/spool/nqs/daemon.conf / <SiteDB>/nqs/daemon.conf
+
+local_daemon=SITE | OFF    … ﾛｰｶﾙｻｲﾄとｸﾗｽﾀｻｲﾄの同時起動可否 
+ipaddress=<待ち受けIP>     … SV が Listen する IP (複数可) 
+maintenance=ON|OFF         … “ﾒﾝﾃﾅﾝｽ起動”ﾓｰﾄﾞ (= cjcpw だけ起動) 
+listen_port=20816          … JobCenter 独自通信ﾎﾟｰﾄ（必要に応じて変更）
+spool_dir=/usr/spool/nqs   … スプール領域のトップパス
+log_level=INFO|DEBUG|ERROR … サーバログ詳細度
+
+ｸﾗｽﾀｻｲﾄではVIPをipaddress=に指定し、AZ切替でアドレス移動する
+
+■/usr/lib/nqs/rc/envvars
+
+TZ=Asia/Tokyo                … 全ｼﾞｮﾌﾞ実行に適用するﾀｲﾑｿﾞｰﾝ
+NQS_SPOOL_DIR=/usr/spool/nqs … ｽﾌﾟｰﾙﾊﾟｽ (変更時は再起動)
+PATH, TEMP, TMP              … TMPDIRの再定義（ｳｲﾙｽ対策・容量確保用）
+
+■systemd ユニット jobcentersv.service
+
+ExecStart=/usr/lib/nqs/nqsstart
+ExecStop=/usr/lib/nqs/nqsstop
+After=network-online.target
+（動的ENIを考慮し、NetworkManager-wait-online.serviceを有効化しておく）
+
+■運用の勘所（RHEL 9 + AWS EC2）
+
+　・ポート開放
+　　SG で 20816/tcp（デフォルト）を MG/CL/Win など管理端末から許可
+
+　・VIP 運用
+　　CLUSTERPRO X + ENI 移管、または Route 53 フェイルオーバーを組み合わせる
+
+　・スプール領域
+　　EBS に配置し、EBS スナップショットで世代バックアップ。性能要件が高い場合は io2／io2-Block-Express を選択
+
+　・時刻同期
+　　Chrony で server 169.254.169.123 prefer iburst を追記し、ジョブの日時トリガ精度を確保
+
+　・SELinux
+　　semanage port -a -t nqs_port_t -p tcp 20816 などでポリシーを追加し、Enforcing 運用を維持
+
+　・バックアップ/アップグレード
+　　ﾊﾞｰｼﾞｮﾝｱｯﾌﾟ時は /usr/spool/nqs/nmap /usr/spool/nqs/private と
+　　/usr/lib/nqs/rc/daemon.conf を退避後、
+　　spoolconv で DB コンバートを実行 
+
+■最低限チェックすべきパラメータ早見表
+
+/usr/lib/nqs/rc/daemon.conf
+　local_daemon     SITE（ローカル＋クラスタ共存）
+　ipaddress        10.0.0.10（管理 NW）
+　listen_port      20816
+　maintenance      OFF
+
+/usr/lib/nqs/rc/envvars
+　TZ               Asia/Tokyo
+　NQS_SPOOL_DIR    /efs/job_spool (EFS 共有例)
+
+<SiteDB>/nqs/daemon.conf
+ ipaddress        10.0.2.50（VIP／フェイルオーバ用）
+
+systemd unit
+　After           network-online.target
+　Restart         on-failure
+
+※）daemon.conf → envvars → site.conf（ｸﾗｽﾀ時）の３層でﾊﾟﾗﾒｰﾀを
+　　整理し、AWSのｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ・ﾌｪﾝｽ方式と合わせて構築・検証してください
+
+

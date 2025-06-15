@@ -1,0 +1,83 @@
+■CLUSTERPRO MC ProcessServer for Linuxの機能と設定ファイルと主要設定項目
+
+■■■　CLUSTERPRO MC（Mission Critical） ProcessServer for Linux
+
+■機能
+
+　・ユーザープロセスや OS デーモンを常時ポーリングし、
+　　異常検知時に自動再起動・通知を実行
+　・プロセス数／起動 PID／終了コードなど多角的な死活判定
+　・CLUSTERPRO X（本体）や外部ジョブ管理製品へのイベント連携
+　・共有メモリを使ったヘルスキューイング・ダンプ（障害解析用）
+　・systemd Unit／init スクリプトの双方を監視対象に出来る
+
+■ディレクトリ構成（デフォルト例）
+
+　/opt/NEC/HA/PS/bin/  … 制御・監視コマンド（pcheck, psadmin など）
+　/var/opt/HA/PS/conf/ … 監視定義ファイル（pfile_xxx）
+　/var/opt/HA/PS/log/  … 稼働ログ・ダンプ
+
+　/usr/lib/systemd/system/psagent.service … systemd ユニット
+
+■設定ファイル
+
+　pfile_<任意名> … 監視対象毎に 1 ファイル（プロセス定義＋パラメータ）
+　psagent.conf  … デーモン全体の動作パラメータ（ログレベルなど）
+　psenv          … LANG・UMASK など環境変数
+　ps_ssl.conf    … SSL 設定（Manager 連携時のみ
+
+■pfile_os
+
+##### PARAM #####               # ----- 共通パラメータ -----
+IPCKEY            = 0x1f000101  # 共有メモリ識別子
+MSG_CHECK_INTERVAL= 5           # メッセージキュー監視間隔(秒)
+MONITOR_INTERVAL  = 10          # プロセス監視間隔(秒)
+SHM_DUMP_FILE     = /var/opt/HA/PS/log/pcheck_OS_dump
+##### PENT #####                # ----- 監視対象プロセス定義 -----
+/usr/lib/systemd/systemd : -                       :0     :0 :continue
+/usr/sbin/rsyslogd        :systemctl restart rsyslog :86400:3 :continue
+/usr/sbin/crond           :systemctl restart crond   :86400:3 :continue
+/usr/sbin/sshd            :systemctl restart sshd    :86400:3 :continue
+/sbin/rpcbind             :systemctl restart rpcbind :86400:3 :continue
+
+PARAM 節
+
+IPCKEY             … 共有メモリ識別子（クラスタ重複を避けるため一意に）
+MSG_CHECK_INTERVAL … メッセージキュー読取周期
+MONITOR_INTERVAL   … プロセス存在／状態チェック周期
+SHM_DUMP_FILE      … 異常時にダンプ出力するファイルパス
+
+PENT 節（1 行 = 1 プロセス）
+
+書式: <ﾌﾟﾛｾｽﾊﾟｽ>:<再起動ｺﾏﾝﾄﾞ>:<ﾀｲﾑｱｳﾄ秒>:<ﾘﾄﾗｲ回数>:<動作>
+
+continue          … リトライ完了後も監視続行
+switch            … CLUSTERPRO X へフェイルオーバ要求
+
+■psagent.conf 
+
+LOG_LEVEL        = INFO        # DEBUG / INFO / WARN / ERROR
+EVENT_QUEUE_SIZE = 2048        # 内部イベントキュー上限
+HEARTBEAT_PORT   = 65000       # Manager 送信ポート
+RETRY_INTERVAL   = 15          # 再接続間隔(秒)
+
+■運用時のポイント
+
+systemd連携 … pfileの再起動は systemctl restart xxx.service を推奨
+SELinux     … Enforcing:/opt/NEC/HA/PS/bin/pcheckを許可するﾎﾟﾘｼｰ追加要
+ｸﾗｽﾀ連携    … switchｱｸｼｮﾝ利用時は CLUSTERPROX側で同名ﾘｿｰｽをﾏｯﾋﾟﾝｸﾞ
+AWS 環境    … Nitroｲﾝｽﾀﾝｽではﾌﾟﾛｾｽ障害＝OS 再起動で復旧する設計も有効
+AWS 環境    … CloudWatch Logs Agentで/var/opt/HA/PS/log/ 配下を集約し障害調査を効率化
+テスト手順  … pcheck -k <pfile> で強制停止→自動復帰／通知を必ず検証
+
+■まとめ
+
+pfile で監視対象と再起動手順を宣言し、
+PARAM / PENT という 2 階層で細粒度設定
+
+psagent.conf でデーモン全体のログ・通信ポリシーを制御
+
+RHEL9 では systemd／SELinux／AWS Nitro の特性を踏まえた
+再起動コマンド・ポリシー設計が鍵
+
+

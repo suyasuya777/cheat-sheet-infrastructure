@@ -1,0 +1,98 @@
+■各Agentの機能と設定ファイルと主要設定項目
+
+■■■　OpenDiosa/OPBASE Agent
+
+■機能
+
+　ホスト／アプリの死活・ログ・メッセージを収集し OPBASEマネージャへ送信 
+
+■設定ファイル（既定： /opt/NEC/OPBASE/agent/conf/）
+
+　opbase_agent.conf  … 基本パラメータ
+　opbase_filter.conf … 重要メッセージ抽出ルール
+
+■設定項目
+
+MANAGER_HOST=<FQDN>／MANAGER_PORT=55000
+HEARTBEAT_INTERVAL=30 # 秒
+LOG_LEVEL=INFO / DEBUG / ERROR
+RETRY_COUNT=3 RETRY_INTERVAL=10
+
+■■■　OpenDiosa/OPBASE Extention Agent
+
+■機能
+
+　ユーザプラグイン／外部スクリプトを呼び出し、
+　独自イベントやメトリクスを収集して Agent に追加連携
+
+■設定ファイル（例：opbase_extension.conf）
+
+　PLUGIN_DIR=/opt/NEC/OPBASE/extension/plugins
+　SCRIPT_DIR=/opt/NEC/OPBASE/extension/scripts
+
+■設定項目
+
+POLL_INTERVAL=60 # 秒
+MAX_WORKERS=4
+TIMEOUT=15 # 秒／プラグイン
+
+■■■　OpenDiosa/OPBASE Performance Agent
+
+■機能
+
+　CPU／メモリ／ディスクなど稼働状況データを一定間隔で収集し、
+　リアルタイム表示・しきい値監視を提供 
+
+■設定ファイル（例：opbase_perf.conf）
+
+COLL_INTERVAL=300 # 秒
+DATA_STORE=/var/opt/opbase/perfdata
+THRESHOLDS=/opt/NEC/OPBASE/perf/threshold.csv
+
+■設定項目
+
+CPU_WARN=80 CPU_CRIT=90 # %
+MEM_WARN=75 MEM_CRIT=90
+DISK_WARN=70 DISK_CRIT=85
+ALERT_ACTION=/opt/NEC/OPBASE/action/perf_alert.sh
+
+■■■　OpenDiosa/OPBASE Operations Agent
+
+■機能
+
+コマンド／メッセージ投入、アクション自動実行、シナリオ制御など運用オペレーション支援 
+jpn.nec.com
+
+■設定ファイル（例：opbase_ops.conf）
+
+ACTION_DB=/opt/NEC/OPBASE/ops/action.db
+SEC_POLICY=/opt/NEC/OPBASE/ops/security.json
+
+■設定項目
+
+MAX_CONCURRENT_ACTION=8
+CONFIRM_TIMEOUT=60 # 秒（オペレータ確認待ち）
+HISTORY_KEEP_DAYS=30
+
+■■■　OpenDiosa/OPBASE HA Option Agent
+
+■機能
+
+　CLUSTERPRO X など外部 HA ソフトと連携し、
+　VIP やアプリ資源のフェイルオーバ状態を OPBASE へ通知
+
+■設定ファイル（例：opbase_ha.conf）
+
+CLUSTER_TYPE=CLUSTERPROX
+STONITH_CMD=/usr/sbin/fence_aws
+
+■設定項目
+
+NODE_ID=1
+FAILBACK=MANUAL|AUTO
+HEARTBEAT_TIMEOUT=20 # 秒
+
+
+
+
+

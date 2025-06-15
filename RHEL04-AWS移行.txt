@@ -1,0 +1,136 @@
+■AWSへのﾘﾌﾄでｵﾝﾌﾟﾚのRHEL6からEC2のRHEL9に移行する場合の注意点
+
+１．移行方式の選択
+
+　　VM Import/Export vs. リビルド
+　　既存 RHEL 6 仮想マシンをそのままイメージ化→EC2 にインポート可能
+　　ただし RHEL 6 用の AWS ドライバ（PV ドライバ）が
+　　新世代 Nitro インスタンスでサポート外の場合がある
+　　より確実なのは、ターゲットを “新規 RHEL 9 AMI” でゼロから構築し、
+　　アプリ／データを移植するリビルド方式
+
+　　AWS Application Migration Service（MGN）
+　　エージェント方式で稼働中サーバをレプリケーションし、
+　　切り替えダウンタイムを最小化
+　　RHEL 6 → RHEL 9 バージョン差は Leapp 等による事前チェックが必須
+
+2. サブスクリプション管理
+
+　RHSM（Red Hat Subscription Manager）
+　オンプレ RHEL 6 購入形態では BYOS（Bring-Your-Own-Subscription）が必要。
+　EC2 上では「AWS Marketplace の RHEL 9 AMI」を使うか、
+　自前のサブスクで RHSM 登録するかを選択。
+　RH Satellite / Insights
+　大規模環境なら Satellite 経由で新インスタンスの
+　サブスク／パッチ管理を自動化。
+
+３．仮想化ドライバ／インスタンスタイプ
+
+　HVM／Nitro 対応
+　RHEL 6 イメージの PV（パラバーチャライズド）ドライバは、
+　最近の Nitro インスタンスではサポートされない可能性大
+　RHEL 9 標準カーネルには 
+　ENA（Enhanced Networking）ドライバ／NVMe ドライバが
+　組み込まれているので、必ず HVM（Nitro）向け AMI を使用
+
+　EBS 最適化
+　RHEL 9 AMI 前提で EBS-最適化インスタンスタイプを選定
+　旧 RHEL 6 時代のドライバチューニングとは別に、
+　NVMe デバイスのマウント検証を
+
+４．ネットワーク設定
+
+　ENI／ENI Trunking
+　RHEL 9 では ip コマンド／NetworkManager 経由で
+　ENI を管理。RHEL 6 の ifcfg-ethX スクリプトは互換レイヤーで動くが、
+　新環境では NM プロファイル化を推奨。
+
+　セキュリティグループ／NACL
+　オンプレのファイアウォールルールをそのまま移植せず、
+　最小権限の SG 設計に見直し。
+
+　AWS PrivateLink／VPC エンドポイント
+
+　S3 や Systems Manager (SSM) へのアクセスは 
+　VPC エンドポイント化を検討
+
+5. ストレージ構成
+
+　EBS ボリューム
+　オンプレの LVM 論理ボリューム構成は EBS 上で同様に再構築可能だが、スナップショット運用方針を見直し。
+　RHEL 9 のデフォルトは XFS。既存 ext4 から XFS へ移行する場合、オンライン変換不可のため一時ボリューム経由で rsync などを利用。
+
+　インスタンスストア
+　データ永続性が必要な場合は利用不可。キャッシュ用途以外は非推奨。
+
+６．OS コンポーネント・ランタイムの差分
+
+　Python／GCC／glibc
+　Python 2 系は非対応。全スクリプトを
+　Python 3.11 (デフォルト) 対応に書き換え。
+　GCC や glibc が大幅に更新されているため、
+　C 拡張モジュール／独自ビルド済みバイナリは再ビルド必須。
+　OpenSSL API 変更
+　OpenSSL 3.0 → アプリ側で互換性確認。compat-openssl1.1 が必要な場合も
+　Chrony → AWS Time Sync Service
+　RHEL 9 も Chrony がデフォルトだが、
+　server 169.254.169.123 prefer iburst を有効化し、オンプレ NTP 設定を切り替え。
+
+７．セキュリティ・管理エージェント
+
+　SSM Agent
+　RHEL 9 標準で CloudWatch エージェントや
+　SSM Agent をインストール／有効化。
+
+　SSSD／IdM
+
+　RHEL 9 の SSSD は設定ファイル仕様が変わっているため、
+　LDAP／IPA 統合を再検証。
+
+　SELinux
+　RHEL 9 ポリシーを適用後に、不要な許可拒否 (audit2allow) が出ていないか要確認。
+
+８．ログ・モニタリング
+
+　journald + CloudWatch Logs
+　journalctl → JSON 出力を CloudWatch Logs エージェントで収集。
+　Cockpit／Session Manager
+
+　EC2 インスタンスへ接続は Session Manager 経由を推奨
+　SSH キー管理やポート開放の見直し。
+
+９．アプリケーション互換性
+
+　ライブラリバージョン差分
+　Percona/MySQL、PostgreSQL、Java、Node.js などの
+　バージョンが RHEL 6→9 で大きく異なる。
+　データベースのダンプ＆リストア、
+　Java アプリの JDK バージョン固定を前提とするリホスト計画を
+　パッケージ化方式
+　RHEL 6 の RPM + yum → RHEL 9 の DNF + AppStream モジュール
+　依存解決の結果が変わるため、E2E テストでモジュールストリーム指定を厳密化。
+
+１０．運用・自動化ツール
+
+　CloudInit/User-Data
+　RHEL 6 からの User-Data スクリプトが動かないケースあり
+　新フォーマットで再作成。
+　Ansible System Roles
+　RHEL 9 向け rhel-system-roles を利用して、
+　ネットワーク／ストレージ設定を自動化
+　CI/CD パイプライン
+
+　AMI ビルド（Packer など）
+　→ Infrastructure as Code（Terraform／CloudFormation）パターンへの刷新を検討。
+
+　移行手順のおすすめフロー
+　Proof of Concept：
+　小規模アプリケーションを RHEL 6 → EC2 RHEL 9 でテスト移行
+
+　AMI ビルド：公式 RHEL 9 AMI をベースに Packer で標準化イメージを作成
+
+　データ同期：rsync／Database Replication で最新データを準備
+
+　切り替えテスト：DR リハーサル、DNS／ロードバランサー切り替え検証
+
+　本番移行：MGN or 手動切り替え＋監視強化

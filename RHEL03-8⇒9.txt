@@ -1,0 +1,118 @@
+■RHEL8からRHEL9へｱｯﾌﾟﾃﾞｰﾄする場合、見直しが必要な変更点
+
+１．パッケージ管理・モジュール
+
+　・DNF の強化
+　　RHEL 9 でも引き続き DNF が標準
+　　トランザクションロギングやパフォーマンス改善がさらに進化。
+　　dnf のプラグインやサブコマンド（dnf system-upgrade など）の挙動変更に注意
+
+　・AppStream モジュールの更新
+　　RHEL 8 で導入された AppStream モジュールが RHEL 9 版へ移行（例：nodejs:14/16 → nodejs:16/18）
+　　利用中のモジュールストリームが RHEL 9 で提供継続か、サポート終了になるか要確認。
+
+2. カーネル・コアシステム
+
+　・カーネルバージョン
+　　RHEL 8 の 4.18 系から RHEL 9 は 5.14 系へ。デバイスドライバや cgroup v2 の挙動確認が必須
+　　/usr ディレクトリのさらなる統合
+　　/lib → /usr/lib ほかシンボリックリンク化が完成に近づき、カスタムビルドや chroot 環境での依存性パスを再チェック。
+
+３．言語ランタイム・コンパイラ
+
+　・Python 3.9 → 3.11
+　　/usr/bin/python3 が Python 3.11.2（マイナー版）に。旧 Python 3.6/3.9 は python36 や python39 モジュールで別途提供。
+　　スクリプトの shebang（#!/usr/bin/python3.11）や依存モジュールのビルド互換性を検証。
+
+　・GCC/glibc の更新
+　　GCC 8.2 → 11.2、glibc 2.28 → 2.34。アプリケーションの再ビルドや互換性テストを実施。
+　　OpenSSL 1.1 → 3.0
+
+　　API/UI が大幅改修。従来の OpenSSL 1.x ベースのアプリやライブラリの動作確認と、必要に応じて compat-openssl1.1 パッケージを用意。
+
+４．ネットワーク管理
+
+　・NetworkManager のさらなる機能追加
+　　nmcli, nmtui コマンドに新オプション。従来の ifcfg- スクリプトは非推奨方向のため、NetworkManager プロファイルへ移行推奨。
+
+　・nftables／firewalld
+　　iptables-nft モードが標準化。以前の iptables-legacy がオプションに。CLI で nft ルールの確認・変換を。
+
+　・IPv6 デフォルト有効化
+　　多くの環境で IPv6 がデフォルトで有効
+　　古いネットワーク設計のサーバでは設定確認が必要。
+
+５．ストレージ・ファイルシステム
+
+　・XFS デフォルト継続
+　　オンラインリサイズは同様に可。
+　　Stratis／VDO のバージョンアップ
+　　RHEL 9 版 Stratis は API や CLI オプション変更あり。VDO の圧縮設定フォーマットも改訂されているため、既存構成のマイグレーション計画を策定。
+
+　・LVM メタデータ
+　　LVM のメタデータフォーマットが更新。旧 VG をマウント後に vgconvert --type cache などでアップグレードが必要。
+
+６．セキュリティ・認証
+
+　・SELinux ポリシー更新
+　　新規 Booleans やパーミッション追加。アップグレード後に restorecon -Rv / を実行し、不要な拒否ログを調査。
+　　SSSD／IdM（IPA）機能強化
+　　SSSD のキャッシュ方式や LDAP フィルタ設定が変更。IdM 環境では新しい IPA クライアントパッケージへの移行検証を。
+
+　・CIS ベンチマークの最新版
+　　RHEL 9 向け CIS ガイドラインに合わせて SCAP プロファイルを更新。
+
+７．コンテナ／仮想化
+
+　・Podman v4.x 系
+　　RHEL 8 の v3 系から v4 系へ。CLI のサブコマンド追加・挙動変更（podman image diff など）。
+　　CRI-O v1.24
+　　Kubernetes 1.25 対応。既存の CRI-O 設定（/etc/crio/crio.conf）の残存項目チェック。
+　　Buildah／Skopeo
+　　イメージビルドフラグや認証オプションに変更あり。CI/CD パイプラインへの影響を事前確認。
+
+８．ロギング・監視・管理UI
+
+　・journald
+　　ログ圧縮オプションやディスク利用閾値設定のパラメータが追加。/etc/systemd/journald.conf.d/ 配下に新規オプションを採用可能。
+　　Cockpit の拡張
+
+　・RHEL 9 標準搭載バージョンは 290+。モジュール（ストレージ、ネットワーク、podman）プラグインが強化されているため、管理者画面の権限設定を見直し。
+　　System Roles（Ansible）
+　　RHEL 9 用 system_roles で新規ロール（e.g. rhel-system-roles.cli, rhel-system-roles.storage）が追加。運用自動化手順を更新。
+
+９．仮想化ゲスト・ホスト
+
+　・QEMU/KVM/libvirt のバージョン更新
+　　QEMU 5.x → 8.x、Libvirt 7.x 系。既存の XML 定義中、<driver> 要素や <memoryBacking> パラメータの互換性を確認。
+　　irt-io ドライバ
+　　性能最適化オプションが追加。Windows/Linux ゲスト双方で新ドライバの導入テストを推奨。
+
+１０．その他ポイント
+
+　・UEFI セキュアブート強化
+　　デフォルトで Secure Boot 対応。カスタムカーネル／ドライバを導入する場合は署名が必要。
+
+　・MTA は Postfix 継続
+　　sendmail は完全廃止。Postfix 8.x 系を使用。メーリング設定ファイルのフォーマット変更に注意。
+
+　・GUI 環境
+　　GNOME 42（Wayland）が標準。X11 アプリの動作検証や、必要に応じて gdm-x-session パッケージをインストール。
+
+　・タイムゾーンデータ
+　　IANA tzdata のバージョン更新に伴い、新興国や地域のタイムゾーン変更を含む。アプリケーションで厳密な時刻処理が必要な場合はコード対応を。
+
+　・アップグレード手順まとめ
+　　テスト環境での検証（Leapp ツールのプレチェック含む）
+　　フルバックアップ取得（スナップショット＋外部バックアップ）
+
+　・RHEL 9 Release Notes／Migration Guide 精読
+　　Leapp を用いた無停止移行可否検証
+
+　・Post-upgrade チェックリスト作成
+　　サービス起動・依存関係
+
+　・カーネル／モジュール読み込み
+　　ネットワーク疎通・ファイアウォールルール確認
+
+　・ログ・監視設定の適用状況
