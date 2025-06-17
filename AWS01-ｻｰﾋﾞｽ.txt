@@ -1,41 +1,113 @@
-■API Gateway
+Lambda
 
-■Lambda
+CloudFormation リソースタイプ: AWS::Lambda::Function
 
-■Lambdaｺｰﾄﾞ
+構成バックアップ: 可（コードは S3/ECR 参照またはインライン）
 
-■EC2
+Lambda コード
 
-■CloudWatch Logs
+上記に含む（S3/ECR/インライン指定で再現）
 
-■CloudWatch Alarm
+構成バックアップ: 可
 
-■Event Bridge
+EC2
 
-■Step Function
+CloudFormation リソースタイプ: AWS::EC2::Instance
 
-■IAM Role
+構成バックアップ: 可（AMI は別途取得）
 
-■IAM Policy
+CloudWatch Logs（ロググループ設定）
 
-■S3
+CloudFormation リソースタイプ: AWS::Logs::LogGroup
 
-■VPC
+構成バックアップ: 可（ログ行データは対象外）
 
-■ｻﾌﾞﾈｯﾄ
+CloudWatch Alarm
 
-■ﾙｰﾄﾃｰﾌﾞﾙ
+CloudFormation リソースタイプ: AWS::CloudWatch::Alarm
 
-■VPCｴﾝﾄﾞﾎﾟｲﾝﾄ（GW）
+構成バックアップ: 可
 
-■VPCｴﾝﾄﾞﾎﾟｲﾝﾄ（IF）
+EventBridge ルール
 
-■ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
+CloudFormation リソースタイプ: AWS::Events::Rule
 
-■Transit Gateway ｱﾀｯﾁﾒﾝﾄ
+構成バックアップ: 可
 
-■ﾎｽﾄｿﾞｰﾝ
+Step Functions（State Machine）
 
-■ｲﾝﾊﾞｳﾝﾄﾞﾎﾟｲﾝﾄ
+CloudFormation リソースタイプ: AWS::StepFunctions::StateMachine
 
-■CloudFormation
+構成バックアップ: 可
+
+IAM Role
+
+CloudFormation リソースタイプ: AWS::IAM::Role
+
+構成バックアップ: 可
+
+IAM Policy
+
+CloudFormation リソースタイプ: AWS::IAM::Policy
+
+構成バックアップ: 可
+
+S3 バケット
+
+CloudFormation リソースタイプ: AWS::S3::Bucket
+
+構成バックアップ: 可（オブジェクトは対象外）
+
+VPC
+
+CloudFormation リソースタイプ: AWS::EC2::VPC
+
+構成バックアップ: 可
+
+サブネット
+
+CloudFormation リソースタイプ: AWS::EC2::Subnet
+
+構成バックアップ: 可
+
+ルートテーブル
+
+CloudFormation リソースタイプ: AWS::EC2::RouteTable, AWS::EC2::Route
+
+構成バックアップ: 可
+
+VPC エンドポイント（Gateway 型）
+
+CloudFormation リソースタイプ: AWS::EC2::VPCEndpoint（Type=Gateway）
+
+構成バックアップ: 可
+
+VPC エンドポイント（Interface 型）
+
+CloudFormation リソースタイプ: AWS::EC2::VPCEndpoint（Type=Interface）
+
+構成バックアップ: 可
+
+セキュリティグループ
+
+CloudFormation リソースタイプ: AWS::EC2::SecurityGroup, AWS::EC2::SecurityGroupIngress, AWS::EC2::SecurityGroupEgress
+
+構成バックアップ: 可
+
+Transit Gateway アタッチメント
+
+CloudFormation リソースタイプ: AWS::EC2::TransitGatewayAttachment（および本体 AWS::EC2::TransitGateway）
+
+構成バックアップ: 可
+
+Route 53 ホストゾーン
+
+CloudFormation リソースタイプ: AWS::Route53::HostedZone
+
+構成バックアップ: 可
+
+Route 53 インバウンドエンドポイント
+
+CloudFormation リソースタイプ: AWS::Route53Resolver::ResolverEndpoint（Direction=INBOUND）
+
+構成バックアップ: 可
