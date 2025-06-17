@@ -1,0 +1,41 @@
+■API Gateway
+
+■Lambda
+
+■Lambdaｺｰﾄﾞ
+
+■EC2
+
+■CloudWatch Logs
+
+■CloudWatch Alarm
+
+■Event Bridge
+
+■Step Function
+
+■IAM Role
+
+■IAM Policy
+
+■S3
+
+■VPC
+
+■ｻﾌﾞﾈｯﾄ
+
+■ﾙｰﾄﾃｰﾌﾞﾙ
+
+■VPCｴﾝﾄﾞﾎﾟｲﾝﾄ（GW）
+
+■VPCｴﾝﾄﾞﾎﾟｲﾝﾄ（IF）
+
+■ｾｷｭﾘﾃｨｸﾞﾙｰﾌﾟ
+
+■Transit Gateway ｱﾀｯﾁﾒﾝﾄ
+
+■ﾎｽﾄｿﾞｰﾝ
+
+■ｲﾝﾊﾞｳﾝﾄﾞﾎﾟｲﾝﾄ
+
+■CloudFormation

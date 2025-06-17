@@ -1,0 +1,101 @@
+■RHEL（OS 全体）
+
+方式 : AMI イメージ＋EBS スナップショット
+ポイント : OS／パッケージ／カーネル設定を丸ごと取得できる。バージョンアップ前・パッチ適用前に必ず作成し、DLM /AWS Backup のライフサイクルポリシーで世代管理。
+
+■CLUSTERPRO MC ProcessServer for Linux
+
+静的ファイル :
+/var/opt/HA/PS/conf/（pfile_xxx など監視定義）
+/opt/NEC/HA/PS/bin/（独自スクリプトを置いている場合）
+
+取得方法 :
+
+サービス稼働中に tar czf pcheck_conf_$(date +%F).tgz /var/opt/HA/PS/conf → S3 へ転送
+週次／月次の EBS スナップショットで二重化
+リストア : ファイル展開後に systemctl restart psagent で完了
+
+■CLUSTERPRO X for Linux（旧 CLUSTERPROX）
+
+静的ファイル : /etc/opt/nec/clpx/conf/*.xml, /etc/opt/nec/clpx/conf/clp.conf, clp_stonith.conf
+共有デバイス (Quorum/EBS マルチアタッチ) も同時スナップ
+推奨 : 停止不要の ホットバックアップ（設定ファイルだけ取得）＋夜間 DLM スナップショット
+復旧 : 設定展開→clpconf --import→systemctl restart clpx
+
+■WebSAM BASE Center（AG）
+
+ディレクトリ : /opt/NECSSBSag/conf/, /opt/NECSSBSag/action/
+方法 :
+bcagstop でエージェント停止
+tar czf base_conf_$(date +%F).tgz /opt/NECSSBSag/conf /opt/NECSSBSag/action
+bcagstart で再開
+自動化 : Systems Manager State Manager でメンテナンスウィンドウ実行
+
+■OpenDiosa / OPBASE 各 Agent
+
+製品	バックアップ対象	推奨方式
+Agent / Extention Agent	/opt/NEC/OPBASE/agent/conf/, /opt/NEC/OPBASE/extension/	日次 tar→S3
+Performance Agent	/opt/NEC/OPBASE/perf/conf/, perfdata (可変)	収集間隔に応じて S3 へ同期／長期保管不要なら世代数でローテ
+Operations Agent	/opt/NEC/OPBASE/ops/（action.db, security.json）	tar＋EBS スナップ
+HA Option Agent	/opt/NEC/OPBASE/ha/conf/	CLUSTERPRO 設定と同時取得
+
+注意 : 各 Agent は共有ライブラリ ABI へ依存するため、AMI 取得で OS と一緒に保管しておくと復旧が早い。
+
+■WebSAM JobCenter SV for Linux
+
+サイト DB／スプール
+ローカルサイト : /usr/spool/nqs/ 全体
+クラスタサイト (CJC) : 共有 EBS/EFS 上の <SiteDB>/nqs/
+安全手順 :
+nqsstop -O でスプール書き込み停止（1–3 秒）
+スプールと daemon.conf を含むボリュームを Amazon EBS スナップショット
+nqsstart でサービス再開
+自動化 : CLUSTERPRO PreSwitch スクリプトや SSM Automation で実行可
+世代管理 : AWS Backup の cron ポリシー（例：毎日 3 世代、毎週 4 世代、毎月 12 世代）
+
+■JobCenter CJC Option
+
+追加ソフトは無し。共有サイト DB ボリューム（上記）をスナップまたは AMI に含める。
+
+■OpenJDK
+
+実体は RPM。AMI イメージに入るため個別バックアップ不要。
+
+アプリ JAR／WAR を S3 + S3 Versioning で保管しておくとロールバック容易。
+
+■Deep Security Agent (DSA)
+
+ポリシーは DSM 側にあり、エージェント単体のバックアップは 不要。
+
+AMI に DSA を含めておけば、新規起動時に自動再登録される。
+
+再導入用にインストーラを S3 に保存しておくと安心。
+
+■FENCE-SVP-D（C／Java）
+
+EC2 では想定外ハードウェア用のフェンス。設定が存在する場合は /opt/fence-svp/conf/ を tar 取得するのみ。
+
+本番で無効化予定ならバックアップ対象から除外しても可。
+
+■まとめ — 推奨バックアップレイヤ
+AMI : OS + ミドルウェアをまとめて取得（大きな変更前に手動 / 月次自動）。
+
+EBS スナップショット :
+
+JobCenter スプール／サイト DB、CLUSTERPRO Quorum Disk など 運用データが載るボリューム を定期取得。
+
+AWS Backup でクロスリージョン複製。
+
+設定ファイル tar :
+
+CLUSTERPRO、ProcessServer、BASE Center、OpenDiosa 系の 設定ディレクトリだけは日次で tar→S3（変更差分が小さいためコスト削減）。
+
+SSM State Manager で自動化し、タグベースで対象インスタンスを管理。
+
+リストア訓練 :
+
+月次で “AMI からテストリストア → 設定 tar 展開 → サービス起動” を行い、ジョブ投入・監視通知まで動くか確認する。
+
+CLUSTERPRO など HA 製品は フェイルオーバ手順を必ず含める。
+
+この 3 層バックアップ（AMI / スナップ / ファイル）を組み合わせれば、OS 障害から個別サービス設定の破損まで効率よくリカバリできます。
