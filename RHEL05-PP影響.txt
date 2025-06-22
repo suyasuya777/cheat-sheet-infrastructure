@@ -81,6 +81,23 @@
 | Deep Security ログ (`/var/opt/ds_agent/`)                                                          | Deep Security Agent                | Security イベント／更新ログ                     | **Data**        |
 
 
+
+| ディレクトリ（標準パス）                                   | 該当製品                         | 保持データの内容                | 補足／理由                |
+| ---------------------------------------------- | ---------------------------- | ----------------------- | -------------------- |
+| `/var/opt/HA/MC/jrn`                           | **CLUSTERPRO MC**            | ジャーナル／差分ログ（ブロック単位の更新履歴） | ミラー再同期に必須。常時追記される。   |
+| `/var/opt/HA/PS/log/`<br>`/var/opt/HA/MC/log/` | **CLUSTERPRO PS / MC**       | 障害ログ・イベントログ                         | 障害解析・監視に利用。常時更新。     |
+| `/var/opt/SS/BASECenter/agent/LOG/`            | **BASE Center AG**           | アラート送信ログ・収集ログ                     | 日常的に増えるためルートに置くと肥大化。 |
+| `/var/opt/SS/BASECenter/agent/DB/perfdata/`    | **BASE Center Performance**  | RRD/CSV など性能データベース                   | ポーリング毎に追記。ミラー対象。     |
+| `/var/opt/SS/OPBASE/agent/LOG/`                | **OPBASE Agent**             | アラート／収集ログ                             | 同上                   |
+| `/var/opt/SS/OPBASE/perfagent/DB/perfdata/`    | **OPBASE Performance Agent** | 性能メトリクス DB                              | 同上                   |
+| `/var/opt/SS/OPBASE/opagent/LOG/`              | **OPBASE Operations Agent**  | 自動化ジョブ実行ログ                           | フロー実行ごとに追記。          |
+| `/var/opt/SS/OPBASE/ha/LOG/`                   | **OPBASE HA Option**         | フェイルオーバー履歴                           | 切替イベントごとに追記。         |
+| `$JOBCTR_HOME/spool/`                          | **WebSAM JobCenter**         | ジョブネット・ジョブのスプール／結果ファイル   | ジョブ実行ごとに生成・削除。       |
+| `$JOBCTR_HOME/var/`                            | **WebSAM JobCenter**         | 実行履歴 DB・ワークファイル                    | 常時更新。                |
+| `/var/spool/jobcenter/`                        | **JobCenter CJC**            | ジョブ投入キュー（CL/Web 等）                  | 投入／終了で書換。            |
+| `/var/opt/ds_agent/`                           | **Deep Security Agent**      | セキュリティイベントログ・パターンキャッシュ   | 監査用途。更新頻度高。          |
+
+
 ■ｵﾝﾌﾟﾚ環境のRHEL6環境をAWS EC2上のRHEL9に移行したい
 　ｵﾝﾌﾟﾚ環境で導入されているPPは以下の通りです
 　注意点を教えてください
