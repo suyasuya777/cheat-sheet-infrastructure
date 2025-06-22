@@ -1,3 +1,86 @@
+【前提環境】
+
+・CLUSTERPROの冗長構成で、現用ＥＣ２、待機ＥＣ２を別ＡＺに配置
+・ＥＣ２に対してルートボリューム用ＥＢＳ（ＡＭＩに含む）、データボリューム用のＥＢＳ（ＡＭＩに含まない）
+　をそれぞれ別ＥＢＳで用意する
+・CLUSTERPROのミラーリング機能を用いて、データボリュームについては現用、待機でミラーリングを行う
+・ルートボリュームについては、ＯＳ起動に必要なもの、ＲＨＥＬ、各ＰＰで構成変更、パッチ適用時にしか更新
+　されないデータを配置したい（ＡＭＩの更新頻度は最小にしたい）
+
+【導入製品】
+・ＲＨＥＬ９
+・CLUSTERPRO MC ProcessServer for Linux
+・CLUSTERPROX for Linux　
+・WebSAM　BASE Center（AG）
+・OpenDiosa/OPBASE Agent
+・OpenDiosa/OPBASE Extention Agent
+・OpenDiosa/OPBASE Performance Agent
+・OpenDiosa/OPBASE Operations Agent
+・OpenDiosa/OPBASE HA Option Agent
+・WebSAM　jobCenter SV for Linux
+・WebSAM　jobCenter CJC option
+・Open JDK
+・Deep Security Agent
+・FENCE-SVP-D（Ｃ言語版）
+・FENCE-SVP-D（JAVA版）
+
+【バックアップ運用】
+
+・構成変更、パッチ適用時は必ずＡＭＩを再作成する（ルートボリュームのスナップショットを再作成）
+・構成変更、パッチ適用時は必要に応じて、データボリュームのスナップショットを再作成
+・通常運用時に更新されるデータのバックアップとして、データボリュームのスナップショットを日次で取得する
+
+【要件】
+
+・導入製品について、構成変更、パッチ適用でしか更新されないファイルを
+　可能なかぎりルートボリュームに配置したい
+・ＡＺ障害時は、ＣＬＵＳＴＥＲＰＲＯにより待機系ＥＣ２でリカバリをしたい
+　ＡＭＩは現用ＥＣ２と共通化させ、共通化したＡＭＩからＥＣ２を起動する
+　データボリュームについては、ミラーリングしているＥＢＳをアタッチする
+（通常のミラーリング実施時は、デタッチしておきます）
+
+【質問】
+導入製品について、構成変更、パッチ適用でしか更新されないファイルを具体的に
+教えてほしい。
+
+各ファイルについて、ルートボリュームに配置するか、データボリュームに配置するかを
+教えてほしい
+
+※）表のイメージで縦がファイル名、横が対応する製品、用途、配置するボリュームで回答がほしい
+
+なお、各ファイルについて、可能な限り標準のインストールディレクトリで指定してほしいが
+必要であれば、インストールディレクトリを変更する指示もください
+
+| ファイル／ディレクトリ(標準パス†)                                                                               | 製品                                  | 主な用途・内容                                | 推奨配置                                   |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------- | -------------------------------------- | -------------------------------------- |
+| `/etc/cluster/cluster.conf`                                                                      | **CLUSTERPRO MC ProcessServer**     | クラスタ全体のノード／グループ／フェンス定義      | **Root**       |
+| `/var/opt/HA/PS/conf/pfile_*`                                                                    | 同上                                | ProcessServer 監視対象プロセス定義              | **Root**       |
+| `/var/opt/HA/MC/conf/*`                                                                          | 同上                                | MC ミラーグループ設定                           | **Root**       |
+| `/etc/HA/`                                                                                       | 同上                                | 起動スクリプト・環境変数                         | **Root**       |
+| `/opt/NEC/HA/PS/bin/`<br>`/opt/NEC/HA/MC/bin/`                                                   | 同上                                | 実行バイナリ（rpm 更新時のみ変更）                | **Root**       |
+| `/opt/nec/clusterpro/etc/clp.conf`<br>`/opt/nec/clusterpro/etc/scripts/`                         | **CLUSTERPRO X**                    | X-系クラスタ構成ファイル＋EXEC スクリプト         | **Root**       |
+| `/opt/nec/clusterpro/etc/stillpoint.conf`                                                        | 同上                                | DB スチルポイント認証／タイムアウト定義            | **Root**       |
+| `/var/opt/SS/BASECenter/agent/DB/aod/SSAOd.SG`                                                   | **WebSAM BASE Center (AG)**         | AOD 保留件数 DB                                 | **Root**       |
+| `/var/opt/SS/BASECenter/agent/DB/FaltLog/Filter/`                                                | 同上                                | ログ抽出・削除フィルタ定義                        | **Root**       |
+| `/var/opt/SS/BASECenter/agent/config/msgctl.conf(.regex)`                                        | 同上                                | 同一メッセージ抑止閾値                            | **Root**       |
+| `/var/opt/SS/BASECenter/agent/config/scsiinfo`                                                   | 同上                                | SCSI 手動定義                                   | **Root**       |
+| `Thred` / `ThredFS` (同 config 配下)                                                             | **BASE Center Perf**                | 性能しきい値                                     | **Root**       |
+| `/var/opt/SS/OPBASE/agent/...` (※表記同型)                                                       | **OpenDiosa/OPBASE Agent**          | AOD / フィルタ / msgctl など BASECenter と同構成 | **Root**       |
+| `/var/opt/SS/OPBASE/extagent/config/extctl.conf`ほか                                             | **OPBASE Extension Agent**          | 拡張監視制御パラメータ                            | **Root**       |
+| `/var/opt/SS/OPBASE/perfagent/config/Thred*`                                                     | **OPBASE Performance Agent**        | CPU/メモリ等しきい値                             | **Root**       |
+| `/var/opt/SS/OPBASE/opagent/config/opctl.conf`<br>`/var/opt/SS/OPBASE/opagent/DB/opctl/OpCtl.SG` | **OPBASE Operations Agent**         | 自動化ポリシー／ジョブ定義                        | **Root**       |
+| `/var/opt/SS/OPBASE/ha/conf/ha.conf`<br>`/var/opt/SS/OPBASE/ha/DB/haod/HAOd.SG`                  | **OPBASE HA Option Agent**          | HA パラメータ／状態テーブル                       | **Root**       |
+| `$JOBCTR_HOME/etc/site.conf`<br>`$JOBCTR_HOME/etc/jc.conf`                                       | **WebSAM JobCenter SV / CJC**       | サイト定義、CL/Web 設定など                      | **Root**        |
+| `/etc/ds_agent.conf`                                                                             | **Trend Micro Deep Security Agent** | エージェント起動パラメータ（手動編集のみ）         | **Root**        |
+| `/opt/fence/svp/conf/fence.conf` (C 版)<br>`/opt/fence/svp-java/conf/fence.conf` (Java 版)        | **FENCE-SVP-D**                     | SVP フェンスデーモン設定                         | **Root**       |
+| `/etc/dnf/*`, `/etc/ssh/*`, `/etc/systemd/*` ほか                                                 | **RHEL 9 OS**                       | パッケージ／サービス設定                         | **Root**        |
+| `/opt/jdk-17/` (OpenJDK)                                                                         | **OpenJDK**                         | 実行バイナリのみ（環境変数で参照）                 | **Root**       |
+| `/var/opt/**/log/`, `/var/opt/**/DB/perfdata`, `/var/spool/jobcenter/` 等                         | すべての製品                         | 監視ログ・性能 DB・ジョブスプールなど             | **Data**       |
+| MC ジャーナル領域 (`/var/opt/HA/MC/jrn`)                                                            | CLUSTERPRO MC                      | ミラーディスク用ログ                             | **Data**      |
+| JobCenter 実行・履歴 DB (`$JOBCTR_HOME/var`, `$JOBCTR_HOME/spool`)                                  | JobCenter                          | ジョブネットスプール／実行履歴                   | **Data**        |
+| Deep Security ログ (`/var/opt/ds_agent/`)                                                          | Deep Security Agent                | Security イベント／更新ログ                     | **Data**        |
+
+
 ■ｵﾝﾌﾟﾚ環境のRHEL6環境をAWS EC2上のRHEL9に移行したい
 　ｵﾝﾌﾟﾚ環境で導入されているPPは以下の通りです
 　注意点を教えてください
