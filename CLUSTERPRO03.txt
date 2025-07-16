@@ -1,0 +1,169 @@
+1. 事前確認・準備
+
+クラスタ状態を確認
+
+　clpstat -w
+
+ログ／構成情報を取得（任意だが推奨）
+
+　clplogcc -f type6 -o /tmp/premaint_logs
+
+メンテナンス計画の共有
+
+　業務側と停止時間を合意。
+
+2. 業務の待機系へのスイッチオーバ
+
+　clpgrp -m <グループ名> <待機系サーバ名>
+
+3. フェイルオーバ抑止
+
+HBタイムアウトを一時延長
+
+　clptoratio -r 40 -t 1h 
+
+モニタリソースを一時停止
+
+　clpmonctrl -s
+
+4. 対象ノードで CLUSTERPRO を停止
+
+デーモンのみ停止（OSシャットダウンしない場合）
+
+　clpcl -t
+
+OSリブート／ハード交換を伴う場合はデーモン無効化 → 再起動
+
+　clpsvcctrl.sh --disable core mgr   # 自動起動を止める
+　reboot
+
+復旧時は
+
+clpsvcctrl.sh --enable  core mgr
+reboot
+
+5‑A. OS パッチ適用
+
+対象ノードを再起動し、通常の Linux Update（dnf / yum / apt など）を実施。
+
+パッチ適用 → 再起動後、clpcl -s（サービス自動起動を有効にした場合は不要）で CLUSTERPRO を起動。
+
+clpstat で ONLINE になり、待機系として参加していることを確認。
+
+5‑B. ハード交換
+
+（RAID でない単体ディスク例）
+
+交換側サーバを停止しディスクを交換 → 起動
+
+交換側で初期ミラーを強制コピー
+
+clpmdctrl  --force <コピー元サーバ> <ミラーディスクリソース>
+
+6. フェイルオーバ機能を元に戻す
+
+モニタリソース再開
+
+　clpmonctrl -r
+
+HBタイムアウト倍率を初期値へ
+
+clptoratio -i
+
+7. 業務を元ノードへ戻す（任意）
+
+clpgrp -m <グループ名> <元のサーバ名>
+
+8. 後片付け
+
+最終状態確認 – clpstat／WebUI で両ノード ONLINE、グループ ACTIVE を確認。
+
+ログ採取（同じ clplogcc type6 など）→ 記録保存。
+
+変更点を運用ドキュメントへ反映
+
+
+
+
+
+HB タイムアウト一時変更	clptoratio -r 40 -t 1h / -i	解除は -i
+
+モニタ一時停止/再開	clpmonctrl -s / -r	全モニタ対象
+
+CLUSTERPRO 停止	clpcl -t	デーモンのみ停止
+
+サービス無効化/有効化	clpsvcctrl.sh --disable core mgr / --enable	OS再起動を伴う作業時
+
+ミラーディスク初期コピー	clpmdctrl --force <src> <md_res>	ハイブリッド: clphdctrl
+
+
+
+0. 事前確認
+　clpstat -w
+　全ノード ONLINE／グループ ACTIVE を必ず確認
+
+1. フェイルオーバ誤動作防止
+　clptoratio -r 40 -t 1h
+　clpmonctrl -s
+　HBタイムアウトを約1 時間に延長し、すべてのモニタ監視を一時停止
+
+2. 待機系（srvB）を停止
+　clpcl -t -h srvB
+　clpsvcctrl.sh --disable core mgr
+　デーモン停止 → 自動起動を無効化して OS パッチ適用
+
+3. srvB に OS パッチ
+　(dnf/yum/apt など) → reboot
+　再起動後、
+　clpsvcctrl.sh --enable core mgr → clpcl -s -h srvB でクラスタへ再参加
+
+4. 業務を srvB へ移動
+　clpgrp -m <GrpName> -a srvB -h srvA
+　srvB を現用に昇格（無停止スイッチ） 
+
+5. 旧現用（srvA）を停止
+　clpcl -t -h srvA
+　clpsvcctrl.sh --disable core mgr
+　srvA が待機になるまで待ってから実行
+
+6. srvA に OS パッチ
+　(dnf/yum/apt) → reboot →
+　clpsvcctrl.sh --enable core mgr → clpcl -s -h srvA	srvA が ONLINE／Standby になることを clpstat で確認
+
+7. （任意）業務を元ノードへ戻す
+　clpgrp -m <GrpName> -a srvA -h srvB
+　元に戻さない場合はスキップ
+
+8. 監視機能を復元
+　clpmonctrl -r
+　clptoratio -i
+　延長していたタイムアウト／モニタを元に戻す
+
+9. 最終確認＆ログ取得
+　clpstat -w
+　clplogcc -f type6 -o /tmp/postpatch	全ノード ONLINE・グループ ACTIVE を確認し、ログを保管
+
+
+
+3-1 . srv B をシャットダウン & ディスク交換  
+　OS を停止して電源を落とし、故障ディスクを抜去。  
+　新ディスクを装着（ホットスワップ不可の環境も多いので必ず停止後に実施）
+
+3-2 . 新ディスクパーティション作成
+　srv B を **シングルユーザモード**（または run‑level 1）で起動。  
+　`fdisk` / `parted` で **旧ディスクと同一レイアウト**（cluster partition＋data partition 等）を作成。  
+
+3-3. srv B をクラスタに復帰
+
+　# 自動起動を有効化
+　clpsvcctrl.sh --enable core mgr
+　reboot          # 通常モードで再起動
+
+3-4 . 初期ミラーコピー開始
+　オンラインでコピーする場合（デフォルト）
+　srv B が ONLINE になったタイミングで 自動的にコピー開始。
+
+3-5.監視／タイムアウトを元に戻す
+
+　clpmonctrl -r   # モニタ再開
+　clptoratio -i   # タイムアウト倍率リセット
